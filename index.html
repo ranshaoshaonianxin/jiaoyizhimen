@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="description" content="基于《交易之门》规则的个股多维评价、复盘与回测工具">
+<title>交易之门 · 个股多维评价系统</title><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%2314213D%22/%3E%3Cpath d=%22M9 22V12m7 10V8m7 14v-6%22 stroke=%22%23D7263D%22 stroke-width=%223%22 stroke-linecap=%22round%22/%3E%3C/svg%3E">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/highstock.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/highcharts-more.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highcharts@12.1.2/modules/accessibility.js"></script>
+<style>
+:root{--page-ink:#14213D;--page-red:#D7263D;--page-bg:#F3F4F6;--page-card:#FFFFFF;--page-line:#E2E5EA;--page-mute:#6B7280;--page-soft:#FBE9EB;--page-green:#2F7D5B;
+--page-sans:'Noto Sans SC','PingFang SC','Microsoft YaHei',system-ui,sans-serif;--page-mono:'JetBrains Mono',ui-monospace,Menlo,monospace}
+*{box-sizing:border-box}body{margin:0;background:var(--page-bg);color:var(--page-ink);font-family:var(--page-sans);font-size:14px;line-height:1.55}
+header{background:var(--page-ink);color:#fff;padding:28px clamp(16px,4vw,48px) 0}
+header h1{margin:0;font-size:clamp(22px,3.4vw,34px);font-weight:900;letter-spacing:.02em}
+header p{margin:6px 0 18px;color:#C9CED8;max-width:900px}
+nav{display:flex;gap:4px;flex-wrap:wrap}
+nav button{background:none;border:0;color:#C9CED8;font:500 14px var(--page-sans);padding:10px 16px;cursor:pointer;border-bottom:3px solid transparent}
+nav button.on{color:#fff;border-bottom-color:var(--page-red)}
+main{padding:24px clamp(16px,4vw,48px) 60px}
+.tab{display:none}.tab.on{display:block}
+.grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(0,1fr);gap:24px;align-items:start}
+@media(max-width:980px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--page-card);border:1px solid var(--page-line);border-radius:6px;padding:18px 20px;margin-bottom:16px;min-width:0}
+h2{font-size:18px;margin:0 0 4px;font-weight:700}h3{font-size:15px;margin:18px 0 8px}
+.sub{color:var(--page-mute);font-size:12.5px;margin:0 0 12px}
+.dim{border-left:4px solid var(--page-ink);padding-left:14px;margin:22px 0 6px;display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.dim b{font-size:16px}.dim span{font-family:var(--page-mono);font-size:12px;color:var(--page-mute)}
+.ind{padding:10px 0;border-bottom:1px dashed var(--page-line)}
+.ind label{display:block;font-weight:500;margin-bottom:4px}
+.ind .src{font-size:11.5px;color:var(--page-red);font-family:var(--page-mono)}
+select,input[type=number],input[type=text]{width:100%;padding:8px 10px;border:1px solid #CBD1DA;border-radius:4px;font:14px var(--page-sans);background:#fff;color:var(--page-ink)}
+.auto{font:700 10px var(--page-mono);background:var(--page-red);color:#fff;padding:1px 5px;border-radius:3px;margin-left:6px;vertical-align:middle}
+textarea{width:100%;height:90px;font:12px var(--page-mono);border:1px solid #CBD1DA;border-radius:4px;padding:8px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;font-size:12.5px}
+.kv div{background:#F6F7F9;padding:8px 10px;border-radius:4px}.kv b{display:block;font:700 15px var(--page-mono)}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+@media(max-width:640px){header{padding:18px 14px 0}main{padding:14px 12px 40px}nav{overflow-x:auto;flex-wrap:nowrap}nav button{white-space:nowrap;padding:10px 10px;font-size:13px}.score .big{font-size:48px}.row2{grid-template-columns:1fr}.card{padding:14px}.sticky{position:static}table{font-size:12px}}
+.ck{display:flex;gap:8px;align-items:flex-start;padding:7px 0;border-bottom:1px dashed var(--page-line);cursor:pointer}
+.ck input{margin-top:4px;accent-color:var(--page-red)}.ck small{display:block;color:var(--page-mute);font-size:11.5px}
+.ck .pt{margin-left:auto;font-family:var(--page-mono);font-weight:700;white-space:nowrap}
+.sticky{position:sticky;top:12px}
+.score{display:flex;align-items:flex-end;gap:14px}
+.score .big{font:700 64px/1 var(--page-mono)}
+.verdict{font-size:20px;font-weight:900;padding:4px 12px;border-radius:4px;display:inline-block}
+.v-go{background:var(--page-red);color:#fff}.v-try{background:var(--page-soft);color:var(--page-red)}.v-watch{background:#E8EBF0;color:var(--page-ink)}.v-no{background:var(--page-ink);color:#fff}
+.veto{background:var(--page-ink);color:#fff;border-radius:4px;padding:10px 12px;margin-top:10px;font-size:13px}
+.veto b{color:#FF8A96}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;color:var(--page-mute);font-weight:500;padding:8px;border-bottom:2px solid var(--page-ink);white-space:nowrap}
+td{padding:8px;border-bottom:1px solid var(--page-line);vertical-align:top}
+td.n{font-family:var(--page-mono);text-align:right;white-space:nowrap}
+.tw{overflow-x:auto}
+.tag{font-family:var(--page-mono);font-size:11px;color:var(--page-red);white-space:nowrap}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.lv{font-family:var(--page-mono);font-size:13px}
+.lv div{display:flex;justify-content:space-between;border-bottom:1px solid var(--page-line);padding:4px 0}
+.note{background:#FFF8E6;border-left:4px solid #E0A100;padding:10px 14px;font-size:13px;border-radius:0 4px 4px 0;margin-bottom:16px}
+.btn{background:var(--page-ink);color:#fff;border:0;padding:9px 16px;border-radius:4px;font:500 13px var(--page-sans);cursor:pointer}
+.btn.alt{background:#fff;color:var(--page-ink);border:1px solid var(--page-ink)}
+ol li,ul li{margin-bottom:6px}
+</style></head><body>
+<header><h1>交易之门 · 个股多维评价系统</h1>
+<p>把《交易之门》里的选股、看盘、量价、主力行为和风险规则拆成 7 个维度、24 个指标，打分只回答书里问的那个问题：这只股票<b>此时此刻能不能搞</b>（P32）。</p>
+<nav><button data-t="t0" class="on">⓪ 数据导入</button><button data-t="t1">① 评价工具</button><button data-t="t2">② 指标体系表</button><button data-t="t3">③ 合成规则与否决项</button><button data-t="t4">④ 网页化方案</button><button data-t="t5">⑤ 复盘统计</button><button data-t="t6">⑥ 批量评价</button><button data-t="t7">⑦ 历史回测</button></nav></header>
+<main>
+<section id="t0" class="tab on">
+<div class="note" style="background:#F1F3F6;border-left-color:#14213D"><b>免责声明：</b>本工具只是把《交易之门》书中的规则整理成打分模板，权重由书中强调程度推导而来，并非书中原有数值。所有结果仅供学习和复盘，<b>不构成投资建议</b>。行情数据来自第三方公开接口，可能延迟、缺失或出错，请以交易软件为准。数据只保存在你自己的浏览器中，不会上传。</div>
+<div class="note">输入代码即可<b>自动取数</b>（东方财富公开接口）；取数失败时可粘贴 CSV。导入后会自动选好可以量化的指标（标 <span class="auto">自动</span>），结构类指标仍需你在「评价工具」里确认（书中要求"不猜测、不臆想"，P22）。</div>
+<div class="grid"><div>
+<div class="card" style="border:2px solid var(--page-red)"><h2>自动取数（东方财富公开接口）</h2><p class="sub">输入 6 位代码，自动拉取近 250 日前复权日K + 换手率，以及上证/深证当日涨跌家数和两市成交额。涨停数相关项仍需手填。</p>
+<div class="row3"><div><label>股票代码</label><input type="text" id="code" placeholder="600481"></div><div style="display:flex;align-items:flex-end"><button class="btn" id="fetch" style="width:100%">获取并评价</button></div><div style="display:flex;align-items:flex-end"><button class="btn alt" id="ping" style="width:100%">测试连接</button></div></div>
+<div class="sub" id="fmsg" style="margin-top:8px"></div></div>
+<div class="card"><h2>1. 个股日线数据（也可手动粘贴 CSV）</h2><p class="sub">列：日期, 开盘, 最高, 最低, 收盘, 成交量[, 换手率%]。支持中英文表头，至少 60 行，建议 250 行（年内新高判断要用）。</p>
+<textarea id="csv" placeholder="日期,开盘,最高,最低,收盘,成交量,换手率&#10;2026-06-01,8.10,8.32,8.05,8.28,152300,2.15&#10;..."></textarea>
+<div class="row3" style="margin-top:10px"><div><label>流通股本（万股，CSV 没有换手率列时必填）</label><input type="number" id="fl"></div><div><label>成交量单位</label><select id="vu"><option value="100">手</option><option value="1">股</option></select></div><div><label>股票名称/代码</label><input type="text" id="nm2"></div></div>
+<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><input type="file" id="fileIn" accept=".csv,.txt" style="font-size:12px"><button class="btn" id="go">计算并填入</button><button class="btn alt" id="demo">载入示例数据</button></div>
+<div class="sub" id="msg" style="margin-top:8px"></div></div>
+<div class="card"><h2>2. 当日市场数据</h2><p class="sub">用于自动判断盈亏效应、大盘量价真假（P20–21、P60–61）</p>
+<div class="row3">
+<div><label>上涨家数</label><input type="number" id="up"></div><div><label>下跌家数</label><input type="number" id="dn"></div>
+<div><label>指数涨跌幅 %</label><input type="number" id="ix" step="0.01"></div>
+<div><label>今日成交额（亿）</label><input type="number" id="a1"></div><div><label>昨日成交额（亿）</label><input type="number" id="a0"></div>
+<div><label>涨幅榜第一板涨停数</label><input type="number" id="zt"></div>
+<div><label>第一板最低涨幅 %</label><input type="number" id="fmin" step="0.01"></div><div><label>第一板 &gt;6% 只数</label><input type="number" id="f6"></div></div></div>
+</div><div>
+<div class="card"><h2>自动计算结果</h2><div class="kv" id="kv"><div>尚未导入</div></div></div>
+<div class="card"><div id="kc" style="height:460px"></div><p class="sub">红线：支撑（近60日最低价）；深色虚线：前高阻力；红色虚线：一的八分法 P1–P3（P219）。</p></div>
+<div class="card"><h2>自动判定明细</h2><ul id="why" style="padding-left:18px;margin:0;font-size:13px"><li>导入后显示每一项是按哪条规则判出来的</li></ul></div>
+</div></div></section>
+<section id="t1" class="tab"><div class="grid"><div>
+<div class="note">权重为依据书中强调程度<b>推导</b>得出（书中无具体数值），每个选项的判定规则均标注了 PDF 页码。本书属短中线技术交易体系，基本面仅作"在日K基础上再考虑"的辅助（P17）。</div>
+<div class="card"><div class="row2"><div><label>股票名称 / 代码</label><input type="text" id="nm" placeholder="如：双良节能 600481"></div><div><label>评价日期</label><input type="text" id="dt" placeholder="2026-11-25"></div></div></div>
+<div class="card" id="form"></div>
+<div class="card"><h2>加分项</h2><p class="sub">满足即加分，合计封顶 +10</p><div id="bonus"></div></div>
+<div class="card"><h2>扣分项</h2><p class="sub">满足即扣分，合计封底 −30</p><div id="minus"></div></div>
+<div class="card"><h2>一票否决项</h2><p class="sub">任一项成立，结论直接为"不能搞"，总分仅作参考</p><div id="veto"></div></div>
+<div class="card"><h2>卖点参考：一的八分法 + 止赢点</h2><p class="sub">P219–220：阻力位 Pn = 波段最低点当日收盘价 × (1 + n/8)；收盘价首次大于 Pn 的次日为卖出时机。P210：第一止赢点设在成本区上方 20%。</p>
+<div class="row2"><div><label>波段最低点当日收盘价 S</label><input type="number" id="S" step="0.01" placeholder="14.98"></div><div><label>持仓成本</label><input type="number" id="C" step="0.01" placeholder="15.20"></div></div>
+<div class="lv" id="lv" style="margin-top:10px"></div></div>
+</div>
+<div class="sticky"><div class="card"><div class="sub" id="who">未命名标的</div>
+<div class="score"><div class="big" id="tot">--</div><div><div class="verdict" id="vd">--</div><div class="sub" id="pos" style="margin-top:6px"></div></div></div>
+<div id="vetobox"></div>
+<div id="radar" style="height:300px;margin-top:8px"></div>
+<div id="wf" style="height:260px"></div>
+<h3>买卖持建议（书中原则）</h3><ul id="adv" style="padding-left:18px;margin:0"></ul>
+<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button class="btn" id="save" style="background:var(--page-red)">保存到复盘库</button><button class="btn alt" id="exp">导出本次 (JSON)</button><button class="btn alt" id="rst">重置</button></div>
+</div></div></div></section>
+
+<section id="t2" class="tab"><div class="card"><h2>结构化评价模板：维度 · 指标 · 定义 · 评分区间 · 书中判定规则</h2><p class="sub">每个指标 0–100 分，维度分 = 维度内指标平均；总分 = Σ 维度分 × 权重。</p><div class="tw"><table id="tbl"></table></div></div></section>
+
+<section id="t3" class="tab"><div class="grid"><div>
+<div class="card"><h2>总分合成规则</h2>
+<ol><li><b>指标分</b>：每个指标按书中规则分档，取 0 / 20 / 40 / 60 / 80 / 100 的离散分（避免伪精确）。</li>
+<li><b>维度分</b>：维度内指标等权平均。</li>
+<li><b>基础分</b> = Σ(维度分 × 维度权重)，满分 100。</li>
+<li><b>加分</b>：命中的书中"高胜率形态"累加，封顶 +10。</li>
+<li><b>扣分</b>：命中的书中"陷阱/警示信号"累加，封底 −30。</li>
+<li><b>总分</b> = clamp(基础分 + 加分 − 扣分, 0, 100)。</li>
+<li><b>一票否决</b>：任一否决项成立 → 结论强制为"不能搞"，与分数无关。</li>
+<li><b>仓位上限由市场格局锁定</b>（P18）：下行趋势 / 消极震荡时，无论个股分多高，仓位上限为"轻仓"。</li></ol></div>
+<div class="card"><h2>结论分档</h2><div class="tw"><table><tr><th>总分</th><th>结论</th><th>操作（书中依据）</th></tr>
+<tr><td class="n">≥ 80</td><td>能搞 · 重点</td><td>上行/积极震荡下可加仓重仓出击（P18、P72）</td></tr>
+<tr><td class="n">65–79</td><td>能搞 · 试仓</td><td>放量当日买入 1/3 仓位（P61）；底部"四到位"时少量试探建仓（P120）</td></tr>
+<tr><td class="n">50–64</td><td>观察</td><td>列入跟踪，等待平台突破/放量确认（P223–224）</td></tr>
+<tr><td class="n">&lt; 50</td><td>不能搞</td><td>"股只分某时某刻能不能搞"（P32）</td></tr></table></div></div>
+<div class="card"><h2>为什么这样分配权重</h2><div class="tw"><table><tr><th>维度</th><th>权重</th><th>依据</th></tr><tbody id="wt"></tbody></table></div></div>
+</div><div>
+<div class="card"><h2>自动评价逻辑（伪代码）</h2>
+<pre style="font:12.5px/1.6 var(--page-mono);white-space:pre-wrap;background:#F6F7F9;padding:12px;border-radius:4px;margin:0">for 维度 D in 7个维度:
+    D.score = mean(指标.选中分值)
+base  = Σ D.score × D.weight
+bonus = min(10, Σ 命中加分)
+minus = min(30, Σ 命中扣分)
+total = clamp(base + bonus − minus, 0, 100)
+
+if 任一否决项命中:
+    verdict = "不能搞"
+elif total ≥ 80: verdict = "能搞·重点"
+elif total ≥ 65: verdict = "能搞·试仓"
+elif total ≥ 50: verdict = "观察"
+else:            verdict = "不能搞"
+
+# 仓位上限（P18）
+if 市场格局 in [下行, 消极震荡]:
+    仓位 = min(仓位, 轻仓)
+
+# 联动校验（P25、P29：量价必须结合位置）
+if 换手>7% and 位置=高位: 自动勾选扣分"高位高换手"
+if 量价=放量滞涨 and 位置=高位: 自动勾选否决"高位天量"
+# 选股法匹配（P34）
+if 市场偏强 and 选股法 in [龙头, 趋势延伸]: +3
+if 市场偏弱 and 选股法 in [中枢, 短底, 超跌回升]: +3</pre></div>
+<div class="card"><h2>边界条件（书中明确的适用范围）</h2><ul>
+<li>换手率只在流通盘差异 5 倍以内的个股间可比（P142–143）；同样换手不同股性表现不同，只能与个股自身历史比（P29）。</li>
+<li>量价齐升≠利好，必须回到当下位置判断（P24–25）。</li>
+<li>大盘横盘时大盘作用不明显，不能把大盘当个股买卖指标（P68–69）；但大盘变盘时影响极大（P65）。</li>
+<li>跌幅榜选股只在牛市或积极震荡中适用；熊市中应空仓（P63）。</li>
+<li>回调股升幅：强势中不超 30%，稍弱时不超 15%（P62–63）。</li>
+<li>反包有时效性，有效反包超时不走出反转仍会回撤（P46–47）。</li>
+<li>一的八分法不可迷信，大势不好有钱赚就走（P220）。</li>
+<li>所有分析只基于已发生的日K，未发生的走势无从知晓（P17）。</li></ul></div>
+</div></div></section>
+
+<section id="t4" class="tab"><div class="grid"><div>
+<div class="card"><h2>需要的输入项</h2><div class="tw"><table><tr><th>类别</th><th>输入</th><th>来源方式</th></tr>
+<tr><td>市场层</td><td>涨跌家数、涨停/跌停数、涨幅榜第一板涨停数与涨幅、两市成交额（今日 vs 前几日）、主流板块趋势（上行/震荡/下行计数）</td><td>行情接口自动拉取</td></tr>
+<tr><td>个股行情</td><td>日K（≥120日）、周K、成交量、换手率、量比、5日均量、3日均线、30/60日均线、流通市值</td><td>行情接口自动拉取</td></tr>
+<tr><td>分时/盘口</td><td>分时价量、外盘/内盘、大单成交明细、竞价曲线（9:20–9:25）</td><td>Level-2 接口（可选），否则人工勾选</td></tr>
+<tr><td>结构判断</td><td>趋势阶段、平台上下沿、支撑级别、K线信号、洗盘/出货判断</td><td>先由算法预判，再人工确认（书中强调"不猜测、不臆想"P22）</td></tr>
+<tr><td>持仓信息</td><td>波段低点收盘价、持仓成本</td><td>人工输入</td></tr>
+<tr><td>题材</td><td>所属板块、是否当下热点题材</td><td>人工输入 / 板块接口</td></tr></table></div></div>
+<div class="card"><h2>交互功能</h2><ol>
+<li><b>三步流程</b>对应书中"高效选股 → 快速读懂盘面 → 制定操盘计划 → 买卖持"（P37）：先判市场，再评个股，最后出计划。</li>
+<li><b>市场格局锁</b>：先填市场格局，下行/消极震荡时界面提示仓位上限并置灰"打板"类加分（P296）。</li>
+<li><b>否决项实时拦截</b>：任一否决勾选立即覆盖结论，并显示书中原文依据。</li>
+<li><b>每个选项悬停显示书中原文和页码</b>，点击可跳转到 PDF 对应页。</li>
+<li><b>联动自动勾选</b>：位置 + 换手、位置 + 量价的组合自动触发扣分/否决（见合成规则）。</li>
+<li><b>多股对比</b>：保存多只股票的评价，按总分和维度排序。</li>
+<li><b>复盘回填</b>：N 日后记录实际涨跌，检验各维度命中率（书中"盘后复盘"P30）。</li>
+<li><b>卖点计算器</b>：一的八分法阻力位、止赢点自动生成，并提示"3日均线走平即撤出"（P62）。</li></ol></div>
+</div><div>
+<div class="card"><h2>图表展示方案</h2><div class="tw"><table><tr><th>图表</th><th>回答什么</th></tr>
+<tr><td>7 维雷达图</td><td>短板在哪个维度（本页已实现）</td></tr>
+<tr><td>得分瀑布图</td><td>基础分如何被加分/扣分推到总分（本页已实现）</td></tr>
+<tr><td>日K + 标注层</td><td>平台上下沿、支撑压力、八分法阻力位 P1–P8、冰点位置直接画在K线上</td></tr>
+<tr><td>量能与换手柱图</td><td>换手 3% / 7% / 10% 三条参考线，高位低位分色</td></tr>
+<tr><td>市场温度条</td><td>四种格局 + 盈亏效应四指标（涨跌比、涨停跌停比、连板高度、板块趋势比）</td></tr>
+<tr><td>板块趋势矩阵</td><td>主流板块上行/震荡/下行计数，自动判定积极/消极震荡（P19）</td></tr>
+<tr><td>多股对比表</td><td>总分、结论、否决原因、各维度分，可排序</td></tr>
+<tr><td>复盘命中率</td><td>各维度高分组与低分组的 N 日后收益对比</td></tr></table></div></div>
+<div class="card"><h2>建议的技术路线</h2><ol>
+<li>第一版（当前页面）：纯前端，手工选择，规则与分数全部透明。</li>
+<li>第二版：接入行情数据，自动计算换手、量比、3日线、5日均量、涨跌家数等可量化指标，结构类指标保留人工确认。</li>
+<li>第三版：加入多股对比、复盘统计，用自己的复盘数据校准权重（书中权重不是数值，需要你用实盘结果检验）。</li></ol></div>
+</div></div></section>
+<section id="t5" class="tab">
+<div class="note">每次评价完点「保存到复盘库」，记录存在本浏览器里（换浏览器或清缓存会丢失，记得定期导出备份）。过几天回来点「一键回填收益」，会自动取评价日之后第 1/3/5/10 个交易日的收盘价算收益。这对应书中强调的复盘（P30），也是用你自己的数据检验权重的唯一办法。</div>
+<div class="card"><div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+<button class="btn" id="bf">一键回填收益</button><button class="btn alt" id="rexp">导出复盘库</button><label class="btn alt" style="display:inline-block">导入复盘库<input type="file" id="rimp" accept=".json" style="display:none"></label><button class="btn alt" id="rclr">清空</button>
+<span class="sub" id="rmsg" style="margin:0"></span></div>
+<div class="row3" style="margin-top:12px"><div><label>统计周期</label><select id="hz"><option value="r1">1 日</option><option value="r3">3 日</option><option value="r5" selected>5 日</option><option value="r10">10 日</option></select></div><div><label>维度高分组阈值</label><input type="number" id="thH" value="70"></div><div><label>维度低分组阈值</label><input type="number" id="thL" value="50"></div></div></div>
+<div class="kv" id="rkv" style="margin-bottom:16px"></div>
+<div class="grid"><div class="card"><div id="cv" style="height:300px"></div><p class="sub">如果评分有效，"能搞"组的平均收益应明显高于"不能搞"组。</p></div>
+<div class="card"><div id="cd" style="height:300px"></div><p class="sub">差值 = 该维度高分组平均收益 − 低分组平均收益。差值为正且越大，说明这个维度越有区分度，可以考虑调高权重；差值为负说明它在你的样本里没有起作用。</p></div></div>
+<div class="card"><div id="cs" style="height:300px"></div><p class="sub">每个点是一条评价记录：横轴为总分，纵轴为 N 日收益，红点表示触发了否决项。</p></div>
+<div class="card"><h2>评价记录</h2><div class="tw"><table id="rt"></table></div></div>
+</section>
+<section id="t6" class="tab">
+<div class="note">批量评价只用<b>能自动判定的指标</b>，个股层面的人工项（洗盘/出货、盘口、题材、股性等）一律按中性 50 分计；市场格局如果你已在「评价工具」里选好，会对所有股票统一生效。所以这里的分数用来<b>初筛排序</b>，入围的再点「详情」逐只补全人工项（书中流程：高效选股 → 快速读懂盘面 → 制定计划，P37）。</div>
+<div class="card"><div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)"><div><label>股票代码（空格、逗号或换行分隔，最多 50 只）</label><textarea id="bcodes" placeholder="600150 600481 000993 600438"></textarea></div>
+<div><label>当日涨幅榜第一板涨停数（可选，对全部生效）</label><input type="number" id="bzt"><div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="brun">开始批量评价</button><button class="btn alt" id="bsave">全部存入复盘库</button><button class="btn alt" id="bcsv">导出 CSV</button></div><div class="sub" id="bmsg" style="margin-top:8px"></div></div></div></div>
+<div class="kv" id="bkv" style="margin-bottom:16px"></div>
+<div class="card"><div id="bc" style="height:340px"></div><p class="sub">红色：能搞；灰色：观察；深色：不能搞。点柱子可以打开该股详情。</p></div>
+<div class="card"><h2>结果</h2><p class="sub">点表头排序</p><div class="tw"><table id="bt"></table></div></div>
+</section>
+<section id="t7" class="tab">
+<div class="note"><b>回测口径（请先看）：</b>对每只股票取约 600 个交易日的前复权日K，从第 260 天起，在每个交易日 t <b>只用 t 日及以前的数据</b>算分，再统计 t 之后第 1/3/5/10 日的收盘收益。<br>
+能回测的只有<b>日线可算的指标</b>：日K位置/趋势/支撑、量价、换手、量比，以及二次放量、连续高换手、换手激增滞涨、高位天量、放量破支撑这几项扣分/否决。<b>市场环境、板块、主力盘口、价本题材、股性这些维度没有历史数据，一律按 50 分中性计</b>，当日大盘否决也无法回测。因此回测总分<b>只用日K与量能两个维度</b>（权重 25:20 归一到 100），检验的是书中日线规则本身有没有区分度，不是整套体系；分档阈值仍为 80/65/50。<br>
+收益按收盘价计，未扣手续费，也没有考虑涨跌停买不进卖不出；前复权价格对收益比例影响很小。</div>
+<div class="card"><div class="grid" style="grid-template-columns:minmax(0,2fr) minmax(0,1fr)"><div><label>回测股票代码（建议 10–30 只，覆盖不同板块和走势）</label><textarea id="btcodes" placeholder="600150 600481 000993 600438 601216 600519 000858 300750 002594 601318"></textarea></div>
+<div><label>每只股票历史长度（交易日）</label><select id="btlen"><option>400</option><option selected>600</option><option>800</option></select>
+<div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap"><button class="btn" id="btrun">开始回测</button><button class="btn alt" id="btcsv">导出明细 CSV</button></div><div class="sub" id="btmsg" style="margin-top:8px"></div></div></div></div>
+<div class="row3" style="margin-bottom:12px"><div><label>统计周期</label><select id="bthz"><option value="1">1 日</option><option value="3">3 日</option><option value="5" selected>5 日</option><option value="10">10 日</option></select></div></div>
+<div class="kv" id="btkv" style="margin-bottom:16px"></div>
+<div class="grid"><div class="card"><div id="bt1" style="height:300px"></div></div><div class="card"><div id="bt2" style="height:300px"></div></div></div>
+<div class="grid"><div class="card"><div id="bt3" style="height:300px"></div><p class="sub">差值 = 该维度 ≥70 分组平均收益 − &lt;50 分组平均收益；中性维度不参与。</p></div><div class="card"><div id="bt4" style="height:300px"></div><p class="sub">触发与未触发时的平均收益对比。书里的规则如果有效，触发扣分/否决后收益应更差。</p></div></div>
+<div class="card"><h2>各股票结果</h2><div class="tw"><table id="btt"></table></div></div>
+</section>
+</main>
+<script>
+window.onerror=(m,s,l)=>{const b=document.getElementById('fmsg');if(b)b.innerHTML='<b style="color:#D7263D">页面脚本出错：'+m+'（行 '+l+'）</b>，请截图发我';};
+const D=[
+{id:'M',name:'市场环境',w:15,why:'P17–21：市场四分类决定仓位轻重；P65–66"大盘下跌时买股票亏钱概率极大"',items:[
+ {id:'m1',n:'市场格局',def:'当前市场处于四种走势中的哪一种',src:'P17–19',rule:'震荡市中≥3大主流板块上行、其余震荡或小幅下行=积极震荡；不足3大板块上行且其余下行=消极震荡',hi:'上行/积极震荡：风险系数低、机会大，可重仓',lo:'下行/消极震荡：及时轻仓或清仓',o:[['上行趋势',100],['积极震荡格局',80],['消极震荡格局',30],['下行趋势',0]]},
+ {id:'m2',n:'盈亏效应',def:'涨跌家数比、涨停/跌停比、连板高度、板块趋势好坏对比',src:'P20–21, P60–61',rule:'如4000家中涨/跌=1500/900为良好；涨幅榜第一板≥8只涨停=强势；第一板全部<5%=极弱势，不能短线操作',hi:'赚钱效应好，技术到位即可稳定收益',lo:'极弱势，大盘背景不利',o:[['强势：第一板≥8只涨停，涨多跌少',100],['稍强：第一板涨幅均>5%',70],['弱势：第一板无涨停，>6%不足5只',30],['极弱：第一板全部<5%',0]]},
+ {id:'m3',n:'大盘量价与真假',def:'大盘涨跌与涨跌家数、成交量是否一致',src:'P61',rule:'大盘跌且下跌家数多=跌势真实，短线操作应停止；大盘跌但上涨家数多=打压指标股，假弱可小心展开；涨时放量跌时缩量=正常；涨时小量跌时放量=有人诱多；大盘涨但下跌家数多=拉指标股，涨势为虚',hi:'涨势真实，短线可积极',lo:'量价关系不利，宜停或小心',o:[['大盘涨且涨家多、放量，涨势真实',100],['量能平衡，无明显方向',60],['大盘假弱：指数跌但涨家多',55],['大盘假强：指数涨但跌家多',30],['涨缩量跌放量，诱多',10],['大盘跌且跌家多，跌势真实',0]]}]},
+{id:'R',name:'大盘与板块关系',w:10,why:'P67–68：走势关联度"直接反映主力资金流向和个股强弱"；P33/P127 阶段龙头、板块联动',items:[
+ {id:'r1',n:'走势关联度',def:'个股相对大盘的独立性',src:'P67–68',rule:'独立走上升通道=有实力资金；率先见底=下轮领涨候选；与大盘一致=随大流非最佳；跌幅超越大盘=被抛弃，回避',hi:'抗跌、涨时更持久',lo:'被市场抛弃的群体',o:[['独立行情，大盘跌时稳',100],['率先见底，构筑上升通道',85],['与大盘高度同步',50],['跌幅超越大盘',10]]},
+ {id:'r2',n:'板块地位',def:'在所属板块中的强弱排位',src:'P33, P36, P127–128, P233–234',rule:'阶段龙头=归属板块最强；板块需有联动默契；跟风股"涨时慢涨，跌时领跌"',hi:'阶段龙头，板块联动明确',lo:'无板块效应或弱势跟风',o:[['阶段龙头（持续推进或连板）',100],['板块前排，板块有联动',75],['板块跟风股',35],['所属板块无联动/走弱',15]]}]},
+{id:'K',name:'日K组合与位置（广式量价时空）',w:25,why:'P15–17："任何技术分析都离不开底层架构——日K组合"，分析个股"首先从日K组合形态开始"；P258 图解术为"技术分析的最后之巅"',items:[
+ {id:'k1',n:'趋势阶段',def:'当前日K组合所处的走势阶段',src:'P13–14, P33, P223, P239–241',rule:'平台转趋势、趋势延伸为可参与；突破前需辨真假横盘；下行通道中未确认止跌不参与',hi:'平台/回调末端转趋势，结构严谨稳定',lo:'下行通道或下跌中继',o:[['平台整理完毕转趋势/二波',100],['趋势已形成并延伸',85],['回调末端出现止跌结构',70],['中枢区间震荡',50],['下跌中继平台',15],['下行通道未止跌',0]]},
+ {id:'k2',n:'相对位置',def:'股价在日线、周线中的高低位置及累计涨幅',src:'P29, P61, P62–63, P97, P145',rule:'常规短线要求"运行在日线、周线低位"；回调股前期升幅强势中≤30%、稍弱≤15%；远离主力成本后高换手变出货信号',hi:'中低位，向上有运作空间',lo:'高位，远离成本区',o:[['日/周线低位',100],['中位，升幅在30%以内',70],['中高位，接近前高阻力',35],['高位，已翻倍以上',5]]},
+ {id:'k3',n:'支撑与压力结构',def:'下方支撑级别与上方阻力距离',src:'P44–45, P100, P124–125, P219–222',rule:'启动前位置、筹码密集区、平台最低点为支撑；下方有强平台支撑且上方距阻力较远，易出逆势长阳',hi:'强支撑在下、阻力在远',lo:'支撑被有效击穿',o:[['贴近强支撑，上方阻力远',100],['支撑有效，阻力适中',70],['紧贴上方强阻力',35],['支撑已被跌破（缩量，待确认）',20]]},
+ {id:'k4',n:'关键K线信号',def:'近期是否出现书中定义的止跌/反转/反包K线',src:'P46–47, P121–122, P239–241, P250–251',rule:'有效反包后有溢价空间；锤子线、长下影、跳空十字星、最后一跌大阴线（跌破平台6天以上累计>20%次日红开）为见底信号；上影放量阳线形成短时抛压',hi:'有效反包/见底组合确认',lo:'多转空信号线',o:[['有效反包或见底组合已确认',100],['短底结构/缩量下影止跌',70],['无明显信号',50],['无效反包/上影放量形成抛压',25],['多转空信号线',0]]}]},
+{id:'V',name:'量能与换手',w:20,why:'P24–28：七字真言以"量"为首，量决定活跃性；P141–147 换手率全解给出明确阈值',items:[
+ {id:'v1',n:'量价配合（结合位置）',def:'成交量变化与价格、位置的关系',src:'P24–25, P96–97, P168–171',rule:'中低位放量（预测全天量>昨日1倍）可能有增量资金；高位量增价不涨=回档可能大；高位天量即便再涨也是余波；底部价稳量缩后量增价扬为见底',hi:'中低位温和放量、量价齐升',lo:'高位放量滞涨',o:[['中低位放量上攻，量价齐升',100],['底部价稳量缩后开始递增',85],['回调缩量，正常调整',70],['量价无规律',40],['高位放量滞涨',10]]},
+ {id:'v2',n:'换手率区间',def:'日换手率所处区间（需结合位置）',src:'P141–147',rule:'<3%冷清；3%–7%活跃，有主力操作；>7%热烈：低位=强庄进货，高位=出货；10日均换手>3%为选股基本条件',hi:'低位活跃换手或底部放量',lo:'高位>7%或长期冷清',o:[['低位换手>7%（首过阻力区）',100],['3%–7% 活跃',80],['高度控盘后缩至<3%（前期10日均>5%）',75],['<3% 无庄冷清',30],['高位>7%',5]]},
+ {id:'v3',n:'量比与放量程度',def:'盘中量比、成交量相对5日均量',src:'P61–62, P96',rule:'常规短线：量比放大1倍以上，成交量大于5日均量1倍以上，且为近期第一次放量',hi:'近期首次放量，量比>1',lo:'无量',o:[['近期首次放量，量>5日均量1倍、量比>1',100],['量比>1但非首次放量',65],['量能平平',40],['持续缩量无人问津',20]]}]},
+{id:'Z',name:'主力行为与盘口',w:15,why:'P21–22：主力是市场合力的主导；P189–191 区分洗盘与出货"直接关系到获利与否"',items:[
+ {id:'z1',n:'洗盘还是出货',def:'调整期间重心与关键位表现',src:'P181–182, P189–191',rule:'洗盘：重心不下移、关键位不破、K线分层；出货：重心一路下移、关键位不守、价位失控',hi:'洗盘接近结束（下降通道扭转/缩量后放量/小平台均线抬头）',lo:'出货',o:[['洗盘结束信号出现',100],['洗盘中，重心不移',75],['无调整/不适用',60],['难以判断',40],['重心下移，疑似出货',5]]},
+ {id:'z2',n:'盘口主力痕迹',def:'外盘内盘、大单、拉升前征兆',src:'P97–99, P101, P128–129',rule:'较大卖单被主动打掉、外盘远大于内盘、大单成交频繁、2–5分钟无成交（筹码集中）、规律性向上冲击波为正面；形态好但内盘极大=暗中出货',hi:'拉升前征兆明显',lo:'内盘大，疑似暗中出货',o:[['大卖单被主动吃掉/外盘远大于内盘',100],['有规律冲击波或脉冲试盘',80],['无明显痕迹',50],['内盘极大，大卖单压制',10]]},
+ {id:'z3',n:'分时强弱',def:'分时线形态与量能配合',src:'P115–116, P38–39',rule:'强势股分时：量随价放大、线条顺滑、上涨角度陡、趋势明确；弱势：曲折、量无规律；瞬时拉升出现筹码断层、无量=弱势秒率',hi:'顺滑挺拔',lo:'曲折无力',o:[['顺滑陡峭，量随价增',100],['震荡上行，尚未转强',60],['曲折、量无规律',25],['冲高后筹码断层回落',10]]}]},
+{id:'P',name:'价本与题材（七字真言·价）',w:10,why:'P23："价"可以是股价也可以是价值，价本背离决定超买超卖；P69 明显机会体现于"题材、量能、趋势"',items:[
+ {id:'p1',n:'价本背离',def:'股价相对自身价值的偏离方向',src:'P23, P69, P122–123',rule:'底价背离=低风险域值，超买；顶价背离=高风险域值，超卖；抄底优选主力资金链与基本面无问题、行业看好的绩优股',hi:'底价背离，低风险',lo:'顶价背离，高风险',o:[['底价背离（价格明显低于价值）',100],['价值附近',60],['无法判断',50],['顶价背离（远高于价值）',0]]},
+ {id:'p2',n:'题材与消息位置',def:'是否有可炒作题材，消息出现的位置',src:'P69, P227, P269–270',rule:'低位出利好可谨慎乐观，低位出利空不一定是利空；高位出利好要小心；妖股需具一定可炒作题材',hi:'低位+当下热点题材',lo:'高位出利好',o:[['低位，具当下热点题材',100],['有题材，位置中性',70],['无题材',45],['高位出利好',10]]}]},
+{id:'S',name:'股性与形态特质',w:5,why:'P29 股性决定同样量能的不同反应；P123 抄底须选股性活跃、盘子适中；P269–270 妖股条件',items:[
+ {id:'s1',n:'股性活跃度',def:'历史上是否经常出现大阳/涨停',src:'P29, P123',rule:'股性活跃的个股才更具备抄底价值，没有几根大阳线的个股不要去做',hi:'股性活跃',lo:'长期死气沉沉',o:[['股性活跃，常有大阳/涨停',100],['一般',55],['长期无大阳',15]]},
+ {id:'s2',n:'盘子与价格',def:'流通盘与股价是否适合资金运作',src:'P123, P269–270',rule:'盘小反弹爆发力强；妖股流通盘一般20亿以上、65亿左右最佳，成妖前总市值<500亿，通常股价10元下方',hi:'盘子适中、低价',lo:'超大盘或过小盘',o:[['流通20–65亿，低价',100],['中等盘子',65],['超大盘或流通<10亿',25]]}]}
+];
+const BONUS=[
+ ['b1',3,'选股法与市场态势匹配','市场转暖用阶段龙头/趋势延伸；低迷用中枢区间/短底/超跌回升','P33–34'],
+ ['b2',3,'极限反转三要素齐备','量价时空（回调时间充分、缩量回到启动价）+ 支撑级别有效 + 分时共振背驰','P44–45'],
+ ['b3',3,'真横盘突破','第一波有力度最好有涨停，整理区缩量抛单轻，再放量启动且有大笔攻击买单','P223–224'],
+ ['b4',3,'大盘见底前后第一个涨停','"行情的启明星，往往是领涨的龙头股"','P68'],
+ ['b5',2,'长期低换手后放量','连续一周以上周换手<2%后放量，或冬眠股充分换手后放量启动','P141, P144'],
+ ['b6',2,'W底右侧量能达标','右侧V量>左侧V量、突破颈线带量、均量线向上发散','P114'],
+ ['b7',2,'空头陷阱特征','无实质利空却暴跌、无量空跌，随后放量冲破阻力线','P152–154']];
+const MINUS=[
+ ['d1',8,'二次放量','连续大涨末期第二次放巨量，两次量均为年内新高、换手接近','P171–172'],
+ ['d2',6,'下跌中继特征','缩量反弹/无量反弹，均线由空头排列转纠缠后二次死叉','P109–111'],
+ ['d3',5,'换手激增股价滞涨','巨量买卖盘同时出现、日换手>20%但股价明显滞涨，30日线与OBV均未上行','P126'],
+ ['d4',4,'连续数日换手>7%','单日>10%进入短期调整概率偏大，连续数日>7%更要小心','P142'],
+ ['d5',4,'尾盘拔高/控尾骗线','全天平稳，收盘前几分钟大单拉高做收盘价','P156–157'],
+ ['d6',5,'多头陷阱/假突破','创新高后在密集区假突破，量未放大反而萎缩；日线买点与周线/OBV矛盾','P154–158'],
+ ['d7',4,'高位出利好','"高位出利好，要小心"','P69'],
+ ['d8',3,'大幅跳空高开（非涨停次日）','可能是试盘，也可能为出货，易高开低走','P126']];
+const VETO=[
+ ['x1','市场下行趋势且个股与大盘同步','"跌势中98%的个股随大盘下跌…一般散户尽量不要操作或轻仓"','P65–66'],
+ ['x2','大盘极弱势','涨幅榜第一板个股涨幅全部<5%，"此时不能进行短线操作"','P61'],
+ ['x3','判定为出货','重心一路下移，关键位不守，价位失控','P190–191'],
+ ['x4','高位放出天量','"高位放出大量乃至天量，即使还有涨升也是余波…鱼尾可以放弃"','P97'],
+ ['x5','放量有效跌破支撑/平台极限点','"如有大成交量配合，则表明另一波跌势已形成，应立即出货"；平台最低点有效击破则结构瓦解','P125, P251'],
+ ['x6','主力彻底离场/基本面恶化/老庄跳水股','"不是任何个股都可以进去抄底的"','P122–123'],
+ ['x7','3日均线走平，失去向上攻击能力','"就必须撤出"（对买入为否决，对持仓为卖出信号）','P62'],
+ ['x8','当日大盘跌且下跌家数多于上涨','"跌势自然真实，属大盘弱，短线操作应停止"（仅否决当日短线买入）','P61']];
+const st={};D.forEach(d=>d.items.forEach(i=>st[i.id]=null));
+const ck={};
+const $=s=>document.querySelector(s);
+// build form
+let f='';D.forEach(d=>{f+=`<div class="dim"><b>${d.name}</b><span>权重 ${d.w}%</span></div>`;d.items.forEach(i=>{f+=`<div class="ind"><label>${i.n} <span class="src">${i.src}</span></label><select data-i="${i.id}"><option value="">— 请选择 —</option>${i.o.map((o,k)=>`<option value="${k}">${o[0]}（${o[1]}）</option>`).join('')}</select></div>`})});
+$('#form').innerHTML='<h2>指标打分</h2><p class="sub">未选择的指标按 50 分（中性）计</p>'+f;
+const ckList=(arr,box,sign)=>{$(box).innerHTML=arr.map(a=>`<label class="ck"><input type="checkbox" data-c="${a[0]}"><div>${a[sign?2:1]}<small>${a[sign?3:2]} · <span class="tag">${a[sign?4:3]}</span></small></div>${sign?`<span class="pt">${sign}${a[1]}</span>`:''}</label>`).join('')};
+ckList(BONUS,'#bonus','+');ckList(MINUS,'#minus','−');ckList(VETO,'#veto','');
+// table
+let t='<tr><th>维度/权重</th><th>指标</th><th>定义</th><th>评分区间（选项→分）</th><th>高分代表</th><th>低分代表</th><th>书中判定规则</th><th>出处</th></tr>';
+D.forEach(d=>d.items.forEach((i,k)=>{t+=`<tr>${k==0?`<td rowspan="${d.items.length}"><b>${d.name}</b><br><span class="tag">${d.w}%</span></td>`:''}<td><b>${i.n}</b></td><td>${i.def}</td><td>${i.o.map(o=>`${o[0]} → <b>${o[1]}</b>`).join('<br>')}</td><td>${i.hi}</td><td>${i.lo}</td><td>${i.rule}</td><td class="tag">${i.src}</td></tr>`}));
+t+='<tr><th colspan="8" style="padding-top:20px">加分项</th></tr>'+BONUS.map(b=>`<tr><td colspan="2"><b>${b[2]}</b></td><td colspan="4">${b[3]}</td><td class="n">+${b[1]}</td><td class="tag">${b[4]}</td></tr>`).join('');
+t+='<tr><th colspan="8" style="padding-top:20px">扣分项</th></tr>'+MINUS.map(b=>`<tr><td colspan="2"><b>${b[2]}</b></td><td colspan="4">${b[3]}</td><td class="n">−${b[1]}</td><td class="tag">${b[4]}</td></tr>`).join('');
+t+='<tr><th colspan="8" style="padding-top:20px">一票否决项</th></tr>'+VETO.map(b=>`<tr><td colspan="2"><b>${b[1]}</b></td><td colspan="5">${b[2]}</td><td class="tag">${b[3]}</td></tr>`).join('');
+$('#tbl').innerHTML=t;
+$('#wt').innerHTML=D.map(d=>`<tr><td>${d.name}</td><td class="n">${d.w}%</td><td>${d.why}</td></tr>`).join('');
+// charts
+const G=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const ink=G('--page-ink'),red=G('--page-red'),mute=G('--page-mute'),line=G('--page-line');
+Highcharts.setOptions({chart:{backgroundColor:'transparent',style:{fontFamily:G('--page-sans')}},credits:{enabled:false},title:{style:{color:ink,fontSize:'13px',fontWeight:'700'}}});
+const radar=Highcharts.chart('radar',{chart:{polar:true,type:'area'},title:{text:'七维得分：短板一眼可见'},legend:{enabled:false},
+ xAxis:{categories:D.map(d=>d.name.replace(/（.*）/,'')),tickmarkPlacement:'on',lineWidth:0,labels:{style:{color:ink,fontSize:'11px'}}},
+ yAxis:{min:0,max:100,tickInterval:25,gridLineColor:line,labels:{enabled:false}},
+ tooltip:{pointFormat:'<b>{point.y:.0f}</b> 分'},series:[{data:D.map(()=>50),color:red,fillOpacity:.18,lineWidth:2,marker:{radius:3}}]});
+const wf=Highcharts.chart('wf',{chart:{type:'waterfall'},title:{text:'基础分 → 加减分 → 总分'},legend:{enabled:false},
+ xAxis:{type:'category',labels:{style:{color:ink}},lineColor:line},yAxis:{min:0,max:110,title:{text:null},gridLineColor:line,labels:{style:{color:mute}}},
+ tooltip:{pointFormat:'<b>{point.y:.1f}</b>'},plotOptions:{waterfall:{borderWidth:0,borderRadius:3,dataLabels:{enabled:true,format:'{point.y:.1f}',style:{color:ink,textOutline:'none'}}}},
+ series:[{upColor:red,color:ink,data:[]}]});
+function calc(){
+ const ds=D.map(d=>{const v=d.items.map(i=>{const s=$(`select[data-i="${i.id}"]`).value;return s===''?50:i.o[+s][1]});return v.reduce((a,b)=>a+b,0)/v.length});
+ const base=ds.reduce((a,s,k)=>a+s*D[k].w/100,0);
+ const on=id=>$(`input[data-c="${id}"]`).checked;
+ // linkage auto rules
+ const v2=$('select[data-i="v2"]').value,v1=$('select[data-i="v1"]').value,k2=$('select[data-i="k2"]').value;
+ if(v2==='4'){$('input[data-c="d4"]').checked=true}
+ if(v1==='4'&&(k2==='2'||k2==='3')){$('input[data-c="x4"]').checked=true}
+ const m1=$('select[data-i="m1"]').value,r1=$('select[data-i="r1"]').value,z1=$('select[data-i="z1"]').value,m2=$('select[data-i="m2"]').value;
+ if(m1==='3'&&r1==='2')$('input[data-c="x1"]').checked=true;
+ if(m2==='3')$('input[data-c="x2"]').checked=true;
+ if(z1==='4')$('input[data-c="x3"]').checked=true;
+ const bon=Math.min(10,BONUS.filter(b=>on(b[0])).reduce((a,b)=>a+b[1],0));
+ const mis=Math.min(30,MINUS.filter(b=>on(b[0])).reduce((a,b)=>a+b[1],0));
+ const tot=Math.max(0,Math.min(100,base+bon-mis));
+ const vs=VETO.filter(v=>on(v[0]));
+ let vd,cls;
+ if(vs.length){vd='不能搞';cls='v-no'}else if(tot>=80){vd='能搞 · 重点';cls='v-go'}else if(tot>=65){vd='能搞 · 试仓';cls='v-try'}else if(tot>=50){vd='观察';cls='v-watch'}else{vd='不能搞';cls='v-no'}
+ const weak=(m1==='2'||m1==='3');
+ let pos={'v-go':'仓位：可加仓重仓（P18）','v-try':'仓位：放量当日 1/3（P61）','v-watch':'仓位：空仓跟踪','v-no':'仓位：不参与 / 持仓者撤出'}[cls];
+ if(weak&&(cls==='v-go'||cls==='v-try'))pos='仓位上限：轻仓（市场为'+(m1==='2'?'消极震荡':'下行趋势')+'，P18）';
+ $('#tot').textContent=tot.toFixed(1);$('#vd').textContent=vd;$('#vd').className='verdict '+cls;$('#pos').textContent=pos;
+ $('#who').textContent=($('#nm').value||'未命名标的')+($('#dt').value?' · '+$('#dt').value:'');
+ $('#vetobox').innerHTML=vs.length?`<div class="veto"><b>一票否决：</b>${vs.map(v=>v[1]+'（'+v[3]+'）').join('；')}</div>`:'';
+ radar.series[0].setData(ds.map(x=>+x.toFixed(1)),true);
+ wf.series[0].setData([{name:'基础分',y:+base.toFixed(1),color:ink},{name:'加分',y:bon},{name:'扣分',y:-mis},{name:'总分',isSum:true,color:cls==='v-no'?mute:red}],true);
+ const adv=[];
+ const lowest=ds.indexOf(Math.min(...ds));adv.push(`最弱维度：<b>${D[lowest].name}</b>（${ds[lowest].toFixed(0)} 分），优先复核。`);
+ if(cls==='v-try'||cls==='v-go')adv.push('若出现误判，3日均线一旦走平、失去向上攻击能力即撤出（P62）。');
+ if(cls==='v-try'||cls==='v-go')adv.push('冲高回落可获利出局，也可回落2天后补仓（P61）。');
+ if(cls==='v-watch')adv.push('等待真横盘结束：整理区缩量、再放量启动时介入（P223–224）。');
+ if(cls==='v-no')adv.push('"股只分某时某刻能不能搞"——不能搞就等，不必勉强（P32）。');
+ adv.push('分时选买卖点要在日K（广式）基础上做，不脱离其一单独操作（P28）。');
+ $('#adv').innerHTML=adv.map(a=>`<li>${a}</li>`).join('');
+ const S=+$('#S').value,C=+$('#C').value;let lv='';
+ if(S>0)for(let n=1;n<=8;n++)lv+=`<div><span>P${n} = S × ${(1+n/8).toFixed(3)}</span><b>${(S*(1+n/8)).toFixed(2)}</b></div>`;
+ if(C>0)lv+=`<div><span>第一止赢点 = 成本 × 1.20（P210）</span><b>${(C*1.2).toFixed(2)}</b></div><div><span>主力第一目标区 = 成本区上方 30%–50%</span><b>${(C*1.3).toFixed(2)}–${(C*1.5).toFixed(2)}</b></div>`;
+ $('#lv').innerHTML=lv||'<span class="sub">输入后显示阻力位</span>';
+ window._last={name:$('#nm').value,date:$('#dt').value,dims:D.map((d,k)=>({dim:d.name,weight:d.w,score:+ds[k].toFixed(1)})),base:+base.toFixed(1),bonus:bon,minus:mis,total:+tot.toFixed(1),verdict:vd,position:pos,veto:vs.map(v=>v[1])};
+}
+document.addEventListener('change',calc);document.addEventListener('input',e=>{if(e.target.matches('input[type=number],input[type=text]'))calc()});
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{document.querySelectorAll('nav button,.tab').forEach(x=>x.classList.remove('on'));b.classList.add('on');$('#'+b.dataset.t).classList.add('on');window.dispatchEvent(new Event('resize'))});
+$('#exp').onclick=()=>{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify(window._last,null,2)],{type:'application/json'}));a.download=(window._last.name||'stock')+'_评价.json';a.click()};
+$('#rst').onclick=()=>{document.querySelectorAll('select').forEach(s=>s.value='');document.querySelectorAll('input').forEach(i=>i.type==='checkbox'?i.checked=false:i.value='');calc()};
+
+// ================= V2: data import =================
+function parseCSV(txt){
+ const L=txt.trim().split(/\r?\n/).filter(x=>x.trim());if(L.length<2)return null;
+ const hd=L[0].split(/[,\t;]/).map(s=>s.trim().toLowerCase());
+ const fi=(...k)=>hd.findIndex(c=>k.some(x=>c.includes(x)));
+ let ix={d:fi('日期','date','时间'),o:fi('开盘','open'),h:fi('最高','high'),l:fi('最低','low'),c:fi('收盘','close'),v:fi('成交量','volume','vol'),t:fi('换手','turn')};
+ let rows=L.slice(1);
+ if(ix.c<0){ix={d:0,o:1,h:2,l:3,c:4,v:5,t:hd.length>6?6:-1};rows=L}
+ const r=rows.map(x=>x.split(/[,\t;]/).map(s=>s.trim())).filter(a=>a.length>=6&&!isNaN(+a[ix.c])).map(a=>({d:a[ix.d],o:+a[ix.o],h:+a[ix.h],l:+a[ix.l],c:+a[ix.c],v:+a[ix.v],t:ix.t>=0&&a[ix.t]!==''?parseFloat(a[ix.t]):null}));
+ r.sort((a,b)=>new Date(a.d.replace(/\//g,'-'))-new Date(b.d.replace(/\//g,'-')));return r}
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const ma=(arr,i,n,k)=>i+1<n?null:avg(arr.slice(i-n+1,i+1).map(x=>x[k]));
+function demo(){let p=12,out=[],d=new Date('2026-04-01');const push=(c,v)=>{const o=p,h=Math.max(o,c)*(1+Math.random()*.015),l=Math.min(o,c)*(1-Math.random()*.015);while([0,6].includes(d.getDay()))d.setDate(d.getDate()+1);out.push([d.toISOString().slice(0,10),o.toFixed(2),h.toFixed(2),l.toFixed(2),c.toFixed(2),Math.round(v)]);d.setDate(d.getDate()+1);p=c};
+ for(let i=0;i<70;i++)push(p*(1-.006+(Math.random()-.5)*.03),60000+Math.random()*30000);
+ for(let i=0;i<45;i++)push(p*(1+(Math.random()-.5)*.02),28000+Math.random()*12000);
+ for(let i=0;i<8;i++)push(p*(1+.012+(Math.random()-.4)*.02),70000+Math.random()*40000);
+ for(let i=0;i<6;i++)push(p*(1-.004+(Math.random()-.5)*.01),45000);
+ push(p*1.06,150000);
+ $('#csv').value='日期,开盘,最高,最低,收盘,成交量\n'+out.map(r=>r.join(',')).join('\n');$('#fl').value=30000;$('#vu').value='100';$('#nm2').value='示例股票';
+ Object.entries({up:2650,dn:1700,ix:0.85,a1:9800,a0:8600,zt:9,fmin:6.2,f6:20}).forEach(([k,v])=>$('#'+k).value=v)}
+let kChart=null;
+function setSel(id,k,reason,why){const s=$(`select[data-i="${id}"]`);s.value=String(k);const lb=s.parentElement.querySelector('label');lb.querySelector('.auto')?.remove();lb.insertAdjacentHTML('beforeend','<span class="auto">自动</span>');why.push(`<b>${D.flatMap(d=>d.items).find(i=>i.id===id).n}</b> → ${s.options[s.selectedIndex].text}：${reason}`)}
+function setCk(id,on,reason,why){if(on){$(`input[data-c="${id}"]`).checked=true;why.push(`<b style="color:var(--page-red)">勾选「${[...BONUS,...MINUS].find(b=>b[0]===id)?.[2]||VETO.find(b=>b[0]===id)[1]}」</b>：${reason}`)}}
+function run(){
+ const R=parseCSV($('#csv').value);if(!R||R.length<60){$('#msg').textContent='数据不足：至少需要 60 个交易日。';return}
+ const fl=+$('#fl').value*1e4,vu=+$('#vu').value;
+ R.forEach(x=>{if(x.t==null||isNaN(x.t))x.t=fl>0?x.v*vu/fl*100:null});
+ if(R.some(x=>x.t==null)){$('#msg').textContent='缺少换手率：请在 CSV 中提供换手率列，或填写流通股本。';return}
+ const n=R.length,i=n-1,T=R[i],Y=R[i-1],why=[];window._K={close:T.c,date:T.d};document.querySelectorAll('input[type=checkbox]').forEach(c=>c.checked=false);
+ const pct=(T.c/Y.c-1)*100,ma5v=avg(R.slice(i-5,i).map(x=>x.v)),vr=T.v/ma5v;
+ const w=R.slice(Math.max(0,n-120)),lo=Math.min(...w.map(x=>x.l)),hi=Math.max(...w.map(x=>x.h));
+ const posr=(T.c-lo)/(hi-lo||1),gain=T.c/lo-1;
+ const ma3=ma(R,i,3,'c'),ma3y=ma(R,i-1,3,'c'),ma5=ma(R,i,5,'c'),ma10=ma(R,i,10,'c'),ma20=ma(R,i,20,'c'),ma20p=ma(R,i-5,20,'c'),ma30=ma(R,i,30,'c'),ma60=ma(R,i,60,'c');
+ const t10=avg(R.slice(i-9,i+1).map(x=>x.t)),tPrev=avg(R.slice(i-19,i-9).map(x=>x.t));
+ const y250=R.slice(Math.max(0,n-250)),vmax=Math.max(...y250.map(x=>x.v));
+ const first=R.slice(i-20,i).every(x=>x.v<2*avg(R.slice(Math.max(0,R.indexOf(x)-5),R.indexOf(x)).map(z=>z.v)||[x.v]));
+ const sup20=Math.min(...R.slice(i-20,i).map(x=>x.l));
+ const w60=R.slice(n-60),lowBar=w60.reduce((a,b)=>b.l<a.l?b:a),S=lowBar.c;
+ const prevHi=Math.max(...R.slice(i-60,i-5).map(x=>x.h));
+ const rng15=(Math.max(...R.slice(i-15,i).map(x=>x.h))/Math.min(...R.slice(i-15,i).map(x=>x.l))-1)*100;
+ // ---- k2 position (P61, P62–63, P97)
+ let k2=gain>=1?3:posr<0.3?0:gain<=0.3?1:2;
+ setSel('k2',k2,`距120日低点涨幅 ${(gain*100).toFixed(0)}%，处于区间 ${(posr*100).toFixed(0)}% 分位。规则：翻倍=高位；≤30% 分位=低位；升幅≤30%=中位（P62–63）`,why);
+ // ---- k1 trend (均线多头趋势网 P63；空头排列→纠缠 P110；真横盘 P223)
+ let k1;
+ if(T.c>ma20&&ma5>ma10&&ma10>ma20&&ma20>ma20p){k1=rng15<12&&T.c>prevHi?0:1}else if(T.c<ma20&&ma20<ma60&&ma20<ma20p){k1=5}else if(rng15<12){k1=3}else if(T.c<ma20&&pct>0&&T.l>=sup20){k1=2}else k1=3;
+ setSel('k1',k1,`MA5 ${ma5.toFixed(2)} / MA10 ${ma10.toFixed(2)} / MA20 ${ma20.toFixed(2)} / MA60 ${ma60.toFixed(2)}，近15日振幅 ${rng15.toFixed(1)}%。<i>此项是粗判，务必结合图解术人工确认</i>`,why);
+ // ---- v2 turnover (P141–147)
+ let v2;if(T.t>7)v2=k2>=2?4:0;else if(T.t>=3)v2=1;else v2=tPrev>5?2:3;
+ setSel('v2',v2,`今日换手 ${T.t.toFixed(2)}%，近10日均 ${t10.toFixed(2)}%，前10日均 ${tPrev.toFixed(2)}%（<3% 冷清，3–7% 活跃，>7% 看位置，P146）`,why);
+ // ---- v3 量比 (P61–62)
+ let v3=vr>=2&&first?0:vr>1?1:vr>=0.7?2:3;
+ setSel('v3',v3,`今日量 / 前5日均量 = ${vr.toFixed(2)} 倍${first?'，近20日首次倍量':''}（要求大于5日均量1倍且为近期第一次放量，P61–62）`,why);
+ // ---- v1 量价结合位置 (P24–25, P97, P168–169)
+ let v1;const vol5=avg(R.slice(i-4,i+1).map(x=>x.v)),vol5p=avg(R.slice(i-14,i-4).map(x=>x.v));
+ if(vr>1.5&&Math.abs(pct)<1&&k2>=2)v1=4;else if(vr>1.5&&pct>0&&k2<=1)v1=0;else if(pct<0&&vr<1)v1=2;else if(k2<=1&&vol5>vol5p*1.2&&rng15<12)v1=1;else v1=3;
+ setSel('v1',v1,`涨跌 ${pct.toFixed(2)}%，量比 ${vr.toFixed(2)}，位置档 ${['低位','中位','中高位','高位'][k2]}（量价必须结合位置，P25）`,why);
+ // ---- k3 support/resistance (P100, P124–125)
+ const dS=(T.c/sup20-1)*100,dR=(prevHi/T.c-1)*100;let k3;
+ if(T.c<sup20)k3=3;else if(dR>0&&dR<3)k3=2;else if(dS<5&&dR>10)k3=0;else k3=1;
+ setSel('k3',k3,`距20日支撑 ${sup20.toFixed(2)} 为 +${dS.toFixed(1)}%，距前高 ${prevHi.toFixed(2)} 为 ${dR.toFixed(1)}%（下方强支撑、上方距阻力远最佳，P100）`,why);
+ // ---- market (P60–61)
+ const up=+$('#up').value,dn=+$('#dn').value,ix=+$('#ix').value,a1=+$('#a1').value,a0=+$('#a0').value,zt=$('#zt').value,fmin=$('#fmin').value,f6=$('#f6').value;
+ if(zt!==''){let m2=+zt>=8?0:(fmin!==''&&+fmin>5)?1:(+zt===0&&f6!==''&&+f6<5)?2:(fmin!==''&&+fmin<5&&+zt===0)?3:1;
+  setSel('m2',m2,`第一板涨停 ${zt} 只，最低涨幅 ${fmin||'-'}%，>6% 共 ${f6||'-'} 只（P60–61）`,why)}
+ if(up&&dn&&$('#ix').value!==''){let m3,r='';
+  if(ix<0&&dn>up){m3=5;r='大盘跌且下跌家数多于上涨，跌势真实，属大盘弱，短线操作应停止'}
+  else if(ix<0&&up>dn){m3=2;r='大盘跌但上涨家数多，有人打压指标股，大盘假弱'}
+  else if(ix>0&&dn>up){m3=3;r='大盘涨但下跌家数多，拉抬指标股，涨势为虚'}
+  else if(ix>0&&a1&&a0&&a1<a0){m3=4;r='大盘涨时缩量，量价关系不利'}
+  else if(ix>0&&up>dn){m3=0;r='大盘涨且上涨家数多，涨势真实'}else{m3=1;r='方向不明'}
+  setSel('m3',m3,`指数 ${ix}%，涨/跌 ${up}/${dn}，成交 ${a1||'-'} vs ${a0||'-'} 亿。${r}（P61）`,why);
+  setCk('x8',ix<0&&dn>up,`指数 ${ix}%，下跌 ${dn} 家多于上涨 ${up} 家（P61"短线操作应停止"）`,why);
+  if(zt===''){const q=up/(up+dn);const m2=q>=0.62?0:q>=0.5?1:q>=0.3?2:3;
+   setSel('m2',m2,`未填涨停数，按涨跌家数比粗判：上涨占比 ${(q*100).toFixed(0)}%（书中例：涨/跌 1500/900 为良好，P21）`,why)}
+ }
+ // ---- auto minus / veto
+ const big=R.slice(i-20,i+1).filter(x=>x.v>=vmax*0.85);
+ setCk('d1',big.length>=2&&gain>0.5,`近20日出现 ${big.length} 根接近年内最大量的K线，且已从低点上涨 ${(gain*100).toFixed(0)}%（P171–172）`,why);
+ setCk('d4',R.slice(i-2,i+1).every(x=>x.t>7),'连续3日换手 >7%（P142）',why);
+ setCk('d3',T.t>20&&Math.abs(pct)<2,`换手 ${T.t.toFixed(1)}% 但涨跌仅 ${pct.toFixed(2)}%（P126）`,why);
+ setCk('x4',k2>=2&&T.v>=vmax*0.95,'中高位/高位放出年内天量（P97）',why);
+ setCk('x5',T.c<sup20&&vr>1.5,`放量（${vr.toFixed(2)} 倍）收在20日支撑 ${sup20.toFixed(2)} 下方（P125）`,why);
+ setCk('b5',tPrev<0.4&&T.t>tPrev*3,'前期长期低换手后放量（P141）',why);
+ // ---- 3日线 (P62)
+ const ma3s=(ma3/ma3y-1)*100;
+ why.push(`<b>3日均线</b>：斜率 ${ma3s.toFixed(2)}%，${ma3s>0.3&&vr>1?'带量上扬，符合 P61 条件':ma3s>0.3?'向上但未带量（量比 '+vr.toFixed(2)+'），不满足"3日均线带量上扬"（P61）':'已走平或下行——持仓者按 P62 应撤出，是否勾选否决由你判断'}`);
+ // ---- fill sell calc
+ $('#S').value=S.toFixed(2);if($('#nm2').value)$('#nm').value=$('#nm2').value;$('#dt').value=T.d;
+ calc();
+ $('#kv').innerHTML=[['最新收盘',T.c.toFixed(2)],['涨跌幅',pct.toFixed(2)+'%'],['换手率',T.t.toFixed(2)+'%'],['10日均换手',t10.toFixed(2)+'%'],['量 / 5日均量',vr.toFixed(2)+'×'],['120日区间分位',(posr*100).toFixed(0)+'%'],['距120日低点',(gain*100).toFixed(0)+'%'],['3日线斜率',ma3s.toFixed(2)+'%'],['MA30 / MA60',ma30.toFixed(2)+' / '+ma60.toFixed(2)],['20日支撑',sup20.toFixed(2)],['前高阻力',prevHi.toFixed(2)],['八分法 S',S.toFixed(2)]].map(a=>`<div>${a[0]}<b>${a[1]}</b></div>`).join('');
+ $('#why').innerHTML=why.map(x=>`<li>${x}</li>`).join('');
+ $('#msg').innerHTML=`已读取 ${n} 个交易日（${R[0].d} → ${T.d}）。总分 <b>${$('#tot').textContent}</b>，结论 <b>${$('#vd').textContent}</b>。到「① 评价工具」补全人工项。`;
+ // ---- chart
+ const ts=x=>new Date(x.d.replace(/\//g,'-')).getTime();
+ const lines=[{value:sup20,color:red,width:1.5,label:{text:'支撑 '+sup20.toFixed(2),style:{color:red}}},{value:prevHi,color:ink,width:1,dashStyle:'Dash',label:{text:'前高 '+prevHi.toFixed(2),style:{color:ink}}}];
+ [1,2,3].forEach(k=>lines.push({value:S*(1+k/8),color:red,width:1,dashStyle:'ShortDot',label:{text:'P'+k+' '+(S*(1+k/8)).toFixed(2),align:'right',x:-4,style:{color:red,fontSize:'10px'}}}));
+ const maS=(k)=>R.map((x,j)=>[ts(x),ma(R,j,k,'c')]).filter(p=>p[1]!=null);
+ if(kChart)kChart.destroy();
+ kChart=Highcharts.stockChart('kc',{title:{text:($('#nm2').value||'个股')+'：日K、量能与关键价位'},rangeSelector:{selected:1,buttons:[{type:'month',count:3,text:'3月'},{type:'month',count:6,text:'6月'},{type:'all',text:'全部'}]},navigator:{enabled:false},scrollbar:{enabled:false},legend:{enabled:false},
+  yAxis:[{height:'72%',labels:{reserveSpace:true,style:{color:mute}},gridLineColor:line,plotLines:lines},{top:'76%',height:'24%',offset:0,labels:{reserveSpace:true,style:{color:mute}},gridLineColor:line}],
+  plotOptions:{candlestick:{color:G('--page-green'),upColor:red,lineColor:G('--page-green'),upLineColor:red}},
+  series:[{type:'candlestick',name:'日K',data:R.map(x=>[ts(x),x.o,x.h,x.l,x.c])},{type:'line',name:'MA20',data:maS(20),color:ink,lineWidth:1},{type:'line',name:'MA60',data:maS(60),color:mute,lineWidth:1,dashStyle:'Dash'},
+   {type:'column',name:'成交量',yAxis:1,data:R.map(x=>({x:ts(x),y:x.v,color:x.c>=x.o?red:G('--page-green')}))}]});
+}
+$('#go').onclick=run;$('#demo').onclick=()=>{demo();run()};
+$('#fileIn').onchange=e=>{const f=e.target.files[0];if(!f)return;const rd=new FileReader();rd.onload=()=>{let t=rd.result;if(/\uFFFD/.test(t)){const r2=new FileReader();r2.onload=()=>{$('#csv').value=r2.result};r2.readAsText(f,'gbk')}else $('#csv').value=t};rd.readAsText(f,'utf-8')};
+
+// ===== V3: auto fetch via JSONP =====
+function jsonp(url){return new Promise((res,rej)=>{const cb='cb'+Date.now()+Math.floor(Math.random()*1e6);const s=document.createElement('script');const tm=setTimeout(()=>{cl();rej(new Error('请求超时（服务器无响应）'))},8000);
+ function cl(){clearTimeout(tm);delete window[cb];s.remove()}window[cb]=d=>{cl();res(d)};s.onerror=()=>{cl();rej(new Error('网络请求失败'))};s.src=url+(url.includes('?')?'&':'?')+'cb='+cb;document.head.appendChild(s)})}
+async function jget(url,tries=3,onTry){let last;for(let k=0;k<tries;k++){if(onTry)onTry(k+1,tries,last);try{const d=await jsonp(url);if(d&&d.data)return d;last=new Error(d&&d.data===null?'接口返回空（代码不存在或被限流）':'返回格式异常')}catch(e){last=e}await new Promise(r=>setTimeout(r,[1500,4000,8000][k]))}throw last}
+const secid=c=>(/^(6|9|5)/.test(c)?'1.':'0.')+c;
+const kurl=(sid,n)=>`https://push2his.eastmoney.com/api/qt/stock/kline/get?secid=${sid}&ut=fa5fd1943c7b386f172d6893dbfba10b&fields1=f1,f2,f3,f4,f5,f6&fields2=f51,f52,f53,f54,f55,f56,f57,f58,f59,f60,f61&klt=101&fqt=1&end=20500101&lmt=${n}`;
+$('#fetch').onclick=async()=>{
+ const c=$('#code').value.trim();if(!/^\d{6}$/.test(c)){$('#fmsg').textContent='请输入 6 位股票代码';return}
+ $('#fmsg').textContent='正在获取…';
+ try{
+  const d=await jget(kurl(secid(c),250),3,(k,n,e)=>{$('#fmsg').textContent=`正在获取 600 日线…第 ${k}/${n} 次尝试`+(e?`（上次：${e.message}）`:'')});
+  if(!d||!d.data||!d.data.klines||!d.data.klines.length)throw new Error('没有返回数据，检查代码是否正确');
+  // f51日期 f52开 f53收 f54高 f55低 f56量(手) f61换手
+  const rows=d.data.klines.map(s=>{const a=s.split(',');return [a[0],a[1],a[3],a[4],a[2],a[5],a[10]].join(',')});
+  $('#csv').value='日期,开盘,最高,最低,收盘,成交量,换手率\n'+rows.join('\n');$('#vu').value='100';
+  $('#nm2').value=(d.data.name||'')+' '+c;
+  let mk='';
+  try{
+   const u=await jsonp('https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&ut=fa5fd1943c7b386f172d6893dbfba10b&secids=1.000001,0.399001&fields=f3,f6,f104,f105');
+   const L=u.data.diff;const up=L.reduce((a,x)=>a+(+x.f104||0),0),dn=L.reduce((a,x)=>a+(+x.f105||0),0),amt=L.reduce((a,x)=>a+(+x.f6||0),0)/1e8;
+   $('#up').value=up;$('#dn').value=dn;$('#ix').value=L[0].f3;$('#a1').value=amt.toFixed(0);
+   const [h1,h2]=await Promise.all([jsonp(kurl('1.000001',2)),jsonp(kurl('0.399001',2))]);
+   const prev=[h1,h2].reduce((a,x)=>a+(+x.data.klines[0].split(',')[6]),0)/1e8;$('#a0').value=prev.toFixed(0);
+   mk=`；市场：涨 ${up} / 跌 ${dn}，成交 ${amt.toFixed(0)} 亿（昨 ${prev.toFixed(0)} 亿）`;
+  }catch(e){mk='；市场数据获取失败（'+e.message+'），请手填'}
+  run();
+  $('#fmsg').innerHTML=`已获取 ${d.data.name||c} ${rows.length} 个交易日${mk}。涨停数、第一板涨幅请手填后点「计算并填入」重算。`;
+ }catch(e){$('#fmsg').innerHTML='获取失败：'+e.message+'。可能原因：网络屏蔽了 eastmoney.com、接口变更，或页面不是以本地文件/普通网页方式打开。可改用 CSV 导入。'}
+};
+
+// ===== V4: review =====
+const RK='jyzm_review_v1';
+const RL=()=>{try{return JSON.parse(localStorage.getItem(RK)||'[]')}catch(e){return[]}};
+const RS=a=>localStorage.setItem(RK,JSON.stringify(a));
+$('#save').onclick=()=>{calc();const L=window._last;const code=($('#code')?.value||'').trim()||(($('#nm').value.match(/\d{6}/)||[''])[0]);
+ if(!/^\d{6}$/.test(code)){alert('需要 6 位股票代码才能回填收益：请在数据导入页填代码，或在名称里包含代码');return}
+ if(!window._K){alert('请先导入日线数据（需要评价日收盘价）');return}
+ const a=RL();const rec={id:Date.now(),code,name:L.name||code,date:window._K.date,close:window._K.close,total:L.total,verdict:L.verdict,veto:L.veto,dims:L.dims.map(d=>d.score),r1:null,r3:null,r5:null,r10:null};
+ const k=a.findIndex(x=>x.code===code&&x.date===rec.date);if(k>=0)a[k]=rec;else a.push(rec);RS(a);renderR();
+ $('#save').textContent='已保存 ✓';setTimeout(()=>$('#save').textContent='保存到复盘库',1500)};
+$('#bf').onclick=async()=>{const a=RL();const todo=a.filter(x=>x.r10==null);let ok=0,fail=0;
+ for(const[j,x]of todo.entries()){$('#rmsg').textContent=`回填中 ${j+1}/${todo.length}…`;
+  try{const d=await jget(kurl(secid(x.code),400));const K=d.data.klines.map(s=>s.split(','));const i=K.findIndex(r=>r[0]===x.date);
+   if(i<0)throw 0;[1,3,5,10].forEach(n=>{if(K[i+n])x['r'+n]=+((+K[i+n][2]/x.close-1)*100).toFixed(2)});ok++}catch(e){fail++}}
+ RS(a);renderR();$('#rmsg').textContent=`回填完成：成功 ${ok}，失败 ${fail}${todo.length?'':'（没有待回填的记录）'}。未满 N 个交易日的周期会留空，过几天再点即可。`};
+$('#rexp').onclick=()=>{const b=new Blob([JSON.stringify(RL(),null,2)],{type:'application/json'});const e=document.createElement('a');e.href=URL.createObjectURL(b);e.download='交易之门_复盘库_'+new Date().toISOString().slice(0,10)+'.json';e.click()};
+$('#rimp').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const n=JSON.parse(r.result);const a=RL();n.forEach(x=>{if(!a.some(y=>y.code===x.code&&y.date===x.date))a.push(x)});RS(a);renderR()}catch(err){alert('文件格式不对')}};r.readAsText(f)};
+$('#rclr').onclick=()=>{if(confirm('确定清空全部复盘记录？建议先导出备份。')){RS([]);renderR()}};
+['hz','thH','thL'].forEach(i=>$('#'+i).addEventListener('change',renderR));
+let cv,cd,cs;
+function renderR(){const a=RL(),hz=$('#hz').value,H=+$('#thH').value,Lo=+$('#thL').value;
+ const done=a.filter(x=>x[hz]!=null);const m=arr=>arr.length?avg(arr):null;const f=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2)+'%';
+ const win=done.filter(x=>x[hz]>0).length;
+ $('#rkv').innerHTML=[['记录总数',a.length],['已回填（'+$('#hz').selectedOptions[0].text+'）',done.length],['全部平均收益',f(m(done.map(x=>x[hz])))],['全部胜率',done.length?(win/done.length*100).toFixed(0)+'%':'—']].map(x=>`<div>${x[0]}<b>${x[1]}</b></div>`).join('')+(done.length<30?'<div style="grid-column:1/-1;background:#FFF8E6">样本少于 30 条时统计结论不稳定，只作参考，不要据此改权重。</div>':'');
+ const V=['能搞 · 重点','能搞 · 试仓','观察','不能搞'];
+ const vg=V.map(v=>{const g=done.filter(x=>x.verdict===v);return{v,n:g.length,r:m(g.map(x=>x[hz])),w:g.length?g.filter(x=>x[hz]>0).length/g.length*100:null}});
+ cv&&cv.destroy();cv=Highcharts.chart('cv',{chart:{type:'column'},title:{text:'各结论组的平均 '+$('#hz').selectedOptions[0].text+' 收益'},legend:{enabled:false},
+  xAxis:{categories:vg.map(g=>g.v+'<br>n='+g.n),labels:{style:{color:ink}}},yAxis:{title:{text:null},labels:{format:'{value}%',style:{color:mute}},gridLineColor:line,plotLines:[{value:0,color:ink,width:1}]},
+  tooltip:{formatter(){const g=vg[this.point.index];return `<b>${g.v}</b><br>样本 ${g.n}<br>平均 ${f(g.r)}<br>胜率 ${g.w==null?'—':g.w.toFixed(0)+'%'}`}},
+  plotOptions:{column:{borderRadius:3,dataLabels:{enabled:true,format:'{y:.2f}%',style:{textOutline:'none',color:ink}}}},
+  series:[{data:vg.map((g,k)=>({y:g.r==null?null:+g.r.toFixed(2),color:k<2?red:k==2?mute:ink}))}]});
+ const dd=D.map((d,k)=>{const hi=done.filter(x=>x.dims[k]>=H),lo=done.filter(x=>x.dims[k]<Lo);const a1=m(hi.map(x=>x[hz])),a2=m(lo.map(x=>x[hz]));return{n:d.name.replace(/（.*）/,''),d:a1!=null&&a2!=null?a1-a2:null,nh:hi.length,nl:lo.length}}).sort((x,y)=>(y.d??-999)-(x.d??-999));
+ cd&&cd.destroy();cd=Highcharts.chart('cd',{chart:{type:'bar'},title:{text:'各维度区分度：高分组与低分组的收益差'},legend:{enabled:false},
+  xAxis:{categories:dd.map(x=>x.n),labels:{style:{color:ink}}},yAxis:{title:{text:null},labels:{format:'{value}%',style:{color:mute}},gridLineColor:line,plotLines:[{value:0,color:ink,width:1}]},
+  tooltip:{formatter(){const x=dd[this.point.index];return `<b>${x.n}</b><br>高分组 n=${x.nh}，低分组 n=${x.nl}<br>差值 ${f(x.d)}`}},
+  plotOptions:{bar:{borderRadius:3,dataLabels:{enabled:true,format:'{y:.2f}%',style:{textOutline:'none',color:ink}}}},
+  series:[{data:dd.map(x=>({y:x.d==null?null:+x.d.toFixed(2),color:x.d>0?red:mute}))}]});
+ cs&&cs.destroy();cs=Highcharts.chart('cs',{chart:{type:'scatter'},title:{text:'总分与 '+$('#hz').selectedOptions[0].text+' 收益'},legend:{enabled:false},
+  xAxis:{min:0,max:100,title:{text:'总分'},plotLines:[50,65,80].map(v=>({value:v,color:line,width:1,dashStyle:'Dash'})),labels:{style:{color:mute}}},
+  yAxis:{title:{text:null},labels:{format:'{value}%',style:{color:mute}},gridLineColor:line,plotLines:[{value:0,color:ink,width:1}]},
+  tooltip:{pointFormat:'<b>{point.name}</b><br>{point.dt}<br>总分 {point.x}，收益 {point.y}%'},
+  series:[{data:done.map(x=>({x:x.total,y:x[hz],name:x.name,dt:x.date,color:x.veto.length?red:ink,marker:{radius:5}}))}]});
+ $('#rt').innerHTML='<tr><th>日期</th><th>股票</th><th>总分</th><th>结论</th><th>否决</th><th>评价日收盘</th><th>1日</th><th>3日</th><th>5日</th><th>10日</th><th></th></tr>'+
+  a.slice().sort((x,y)=>y.date.localeCompare(x.date)).map(x=>`<tr><td>${x.date}</td><td>${x.name}</td><td class="n">${x.total}</td><td>${x.verdict}</td><td style="font-size:12px">${x.veto.join('；')||'—'}</td><td class="n">${x.close}</td>${['r1','r3','r5','r10'].map(k=>`<td class="n" style="color:${x[k]>0?red:x[k]<0?G('--page-green'):mute}">${f(x[k])}</td>`).join('')}<td><button class="btn alt" style="padding:3px 8px" onclick="delR(${x.id})">删除</button></td></tr>`).join('');
+}
+window.delR=id=>{RS(RL().filter(x=>x.id!==id));renderR()};
+document.querySelector('nav button[data-t="t5"]').addEventListener('click',()=>setTimeout(renderR,30));
+
+// ===== V5: batch =====
+let BR=[],bSort={k:'total',d:-1};
+const MKT=['m1','m2','m3'];
+async function getMarket(){
+ const u=await jsonp('https://push2.eastmoney.com/api/qt/ulist.np/get?fltt=2&ut=fa5fd1943c7b386f172d6893dbfba10b&secids=1.000001,0.399001&fields=f3,f6,f104,f105');
+ const L=u.data.diff;const up=L.reduce((a,x)=>a+(+x.f104||0),0),dn=L.reduce((a,x)=>a+(+x.f105||0),0),amt=L.reduce((a,x)=>a+(+x.f6||0),0)/1e8;
+ const [h1,h2]=await Promise.all([jsonp(kurl('1.000001',2)),jsonp(kurl('0.399001',2))]);
+ const prev=[h1,h2].reduce((a,x)=>a+(+x.data.klines[0].split(',')[6]),0)/1e8;
+ $('#up').value=up;$('#dn').value=dn;$('#ix').value=L[0].f3;$('#a1').value=amt.toFixed(0);$('#a0').value=prev.toFixed(0);
+ return {up,dn,ix:L[0].f3,amt,prev}}
+async function getStock(c){const d=await jget(kurl(secid(c),250));if(!d||!d.data||!d.data.klines||!d.data.klines.length)throw new Error('无数据');
+ return {name:d.data.name||c,csv:'日期,开盘,最高,最低,收盘,成交量,换手率\n'+d.data.klines.map(s=>{const a=s.split(',');return [a[0],a[1],a[3],a[4],a[2],a[5],a[10]].join(',')}).join('\n')}}
+function evalLoaded(c,name,csv){
+ document.querySelectorAll('select[data-i]').forEach(s=>{if(!MKT.includes(s.dataset.i)||s.dataset.i!=='m1'){if(s.dataset.i!=='m1')s.value=''}});
+ $('#csv').value=csv;$('#vu').value='100';$('#nm2').value=name+' '+c;$('#code').value=c;
+ run();
+ const L=window._last;const g=id=>{const s=$(`select[data-i="${id}"]`);return s.value===''?'—':s.options[s.selectedIndex].text.replace(/（\d+）$/,'')};
+ return {code:c,name,csv,date:window._K.date,close:window._K.close,total:L.total,verdict:L.verdict,veto:L.veto,dims:L.dims.map(d=>d.score),
+  pos:g('k2'),trend:g('k1'),turn:g('v2'),vol:g('v3'),minus:L.minus,bonus:L.bonus}}
+$('#brun').onclick=async()=>{
+ const codes=[...new Set(($('#bcodes').value.match(/\d{6}/g)||[]))].slice(0,50);
+ if(!codes.length){$('#bmsg').textContent='请输入至少一个 6 位代码';return}
+ if($('#bzt').value!=='')$('#zt').value=$('#bzt').value;
+ BR=[];const fails=[];$('#brun').disabled=true;
+ try{$('#bmsg').textContent='获取市场数据…';await getMarket()}catch(e){$('#bmsg').textContent='市场数据获取失败，继续评价个股（大盘项按中性计）'}
+ for(const [j,c] of codes.entries()){
+  $('#bmsg').textContent=`评价中 ${j+1}/${codes.length}：${c}`;
+  try{const s=await getStock(c);BR.push(evalLoaded(c,s.name,s.csv))}catch(e){fails.push(c)}
+  await new Promise(r=>setTimeout(r,250))}
+ $('#brun').disabled=false;
+ $('#bmsg').innerHTML=`完成：成功 ${BR.length} 只${fails.length?'，失败 '+fails.join('、'):''}。`;
+ renderB()};
+function renderB(){
+ const order=['能搞 · 重点','能搞 · 试仓','观察','不能搞'];
+ const cnt=order.map(v=>BR.filter(x=>x.verdict===v).length);
+ const vetoAll=BR.length&&BR.every(x=>x.veto.length);
+ $('#bkv').innerHTML=BR.length?order.map((v,k)=>`<div>${v}<b>${cnt[k]}</b></div>`).join('')+(vetoAll?`<div style="grid-column:1/-1;background:#FFF8E6">全部股票都触发了否决（如当日大盘弱），说明今天的问题在市场而不是个股——按 P61 当日不做短线买入，可以看"去掉否决后的分数"排序找后续观察对象。</div>`:''):'';
+ const S=BR.slice().sort((a,b)=>{const x=a[bSort.k],y=b[bSort.k];return (typeof x==='number'?x-y:String(x).localeCompare(String(y)))*bSort.d});
+ const cols=[['name','股票'],['total','总分'],['verdict','结论'],['veto','否决'],['pos','位置'],['trend','趋势阶段'],['turn','换手'],['vol','量比'],['minus','扣分'],['close','收盘']];
+ $('#bt').innerHTML='<tr>'+cols.map(c=>`<th style="cursor:pointer" onclick="sortB('${c[0]}')">${c[1]}${bSort.k===c[0]?(bSort.d>0?' ↑':' ↓'):''}</th>`).join('')+'<th></th></tr>'+
+  S.map(x=>`<tr><td><b>${x.name}</b><br><span class="tag">${x.code}</span></td><td class="n"><b>${x.total}</b></td><td>${x.verdict}</td><td style="font-size:12px">${x.veto.join('；')||'—'}</td><td>${x.pos}</td><td>${x.trend}</td><td>${x.turn}</td><td>${x.vol}</td><td class="n">${x.minus?'−'+x.minus:'—'}</td><td class="n">${x.close}</td><td><button class="btn alt" style="padding:3px 8px" onclick="openB('${x.code}')">详情</button></td></tr>`).join('');
+ const T=BR.slice().sort((a,b)=>b.total-a.total);
+ bc&&bc.destroy();bc=Highcharts.chart('bc',{chart:{type:'bar'},title:{text:BR.length?`初筛排序：${T[0].name} 得分最高（${T[0].total}）`:'尚无结果'},legend:{enabled:false},
+  xAxis:{categories:T.map(x=>x.name),labels:{style:{color:ink}}},yAxis:{min:0,max:100,title:{text:null},gridLineColor:line,labels:{style:{color:mute}},plotLines:[50,65,80].map(v=>({value:v,color:line,width:1,dashStyle:'Dash',label:{text:v,style:{color:mute}}}))},
+  tooltip:{formatter(){const x=T[this.point.index];return `<b>${x.name}</b> ${x.code}<br>总分 ${x.total} · ${x.verdict}${x.veto.length?'<br>否决：'+x.veto.join('；'):''}`}},
+  plotOptions:{bar:{borderRadius:3,cursor:'pointer',point:{events:{click(){openB(T[this.index].code)}}},dataLabels:{enabled:true,style:{textOutline:'none',color:ink}}}},
+  series:[{data:T.map(x=>({y:x.total,color:x.verdict.startsWith('能搞')?red:x.verdict==='观察'?mute:ink}))}]});
+}
+let bc;
+window.sortB=k=>{bSort={k,d:bSort.k===k?-bSort.d:-1};renderB()};
+window.openB=c=>{const x=BR.find(r=>r.code===c);if(!x)return;evalLoaded(x.code,x.name,x.csv);document.querySelector('nav button[data-t="t1"]').click();window.scrollTo(0,0)};
+$('#bsave').onclick=()=>{if(!BR.length)return;const a=RL();BR.forEach(x=>{const rec={id:Date.now()+Math.random(),code:x.code,name:x.name+' '+x.code,date:x.date,close:x.close,total:x.total,verdict:x.verdict,veto:x.veto,dims:x.dims,r1:null,r3:null,r5:null,r10:null,batch:true};const k=a.findIndex(y=>y.code===x.code&&y.date===x.date);if(k>=0)a[k]=rec;else a.push(rec)});RS(a);$('#bmsg').textContent=`已存入复盘库 ${BR.length} 条（标记为批量初筛，人工项按中性计）。`};
+$('#bcsv').onclick=()=>{if(!BR.length)return;const L=[['代码','名称','日期','收盘','总分','结论','否决','位置','趋势阶段','换手','量比','扣分',...D.map(d=>d.name)].join(',')].concat(BR.map(x=>[x.code,x.name,x.date,x.close,x.total,x.verdict,x.veto.join('；'),x.pos,x.trend,x.turn,x.vol,x.minus,...x.dims].map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')));
+ const b=new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'});const e=document.createElement('a');e.href=URL.createObjectURL(b);e.download='批量评价_'+(BR[0]?.date||'')+'.csv';e.click()};
+
+// ===== V6: backtest =====
+const OPT={};D.forEach(d=>d.items.forEach(it=>OPT[it.id]=it.o.map(o=>o[1])));
+function scoreAt(R,i){
+ const T=R[i],Y=R[i-1],pct=(T.c/Y.c-1)*100,ma5v=avg(R.slice(i-5,i).map(x=>x.v)),vr=T.v/ma5v;
+ const w=R.slice(Math.max(0,i-119),i+1),lo=Math.min(...w.map(x=>x.l)),hi=Math.max(...w.map(x=>x.h));
+ const posr=(T.c-lo)/(hi-lo||1),gain=T.c/lo-1;
+ const ma5=ma(R,i,5,'c'),ma10=ma(R,i,10,'c'),ma20=ma(R,i,20,'c'),ma20p=ma(R,i-5,20,'c'),ma60=ma(R,i,60,'c');
+ const t10=avg(R.slice(i-9,i+1).map(x=>x.t)),tPrev=avg(R.slice(i-19,i-9).map(x=>x.t));
+ const vmax=Math.max(...R.slice(Math.max(0,i-249),i+1).map(x=>x.v));
+ let first=true;for(let j=i-20;j<i;j++){const m5=avg(R.slice(j-5,j).map(z=>z.v));if(R[j].v>=2*m5){first=false;break}}
+ const sup20=Math.min(...R.slice(i-20,i).map(x=>x.l)),prevHi=Math.max(...R.slice(i-60,i-5).map(x=>x.h));
+ const r15=R.slice(i-15,i),rng15=(Math.max(...r15.map(x=>x.h))/Math.min(...r15.map(x=>x.l))-1)*100;
+ const sel={};
+ const k2=gain>=1?3:posr<0.3?0:gain<=0.3?1:2;sel.k2=k2;
+ let k1;if(T.c>ma20&&ma5>ma10&&ma10>ma20&&ma20>ma20p){k1=rng15<12&&T.c>prevHi?0:1}else if(T.c<ma20&&ma20<ma60&&ma20<ma20p)k1=5;else if(rng15<12)k1=3;else if(T.c<ma20&&pct>0&&T.l>=sup20)k1=2;else k1=3;sel.k1=k1;
+ sel.v2=T.t>7?(k2>=2?4:0):T.t>=3?1:(tPrev>5?2:3);
+ sel.v3=vr>=2&&first?0:vr>1?1:vr>=0.7?2:3;
+ const vol5=avg(R.slice(i-4,i+1).map(x=>x.v)),vol5p=avg(R.slice(i-14,i-4).map(x=>x.v));
+ sel.v1=(vr>1.5&&Math.abs(pct)<1&&k2>=2)?4:(vr>1.5&&pct>0&&k2<=1)?0:(pct<0&&vr<1)?2:(k2<=1&&vol5>vol5p*1.2&&rng15<12)?1:3;
+ const dS=(T.c/sup20-1)*100,dR=(prevHi/T.c-1)*100;sel.k3=T.c<sup20?3:(dR>0&&dR<3)?2:(dS<5&&dR>10)?0:1;
+ const dims=D.map(d=>{const v=d.items.map(it=>sel[it.id]!=null?OPT[it.id][sel[it.id]]:50);return avg(v)});
+ const auto=D.map(d=>d.items.some(it=>sel[it.id]!=null));
+ const aw=D.reduce((s,d,k)=>s+(auto[k]?d.w:0),0);const base=dims.reduce((a,s,k)=>a+(auto[k]?s*D[k].w/aw:0),0);
+ const big=R.slice(i-20,i+1).filter(x=>x.v>=vmax*0.85).length;
+ const fl={d1:big>=2&&gain>0.5,d4:R.slice(i-2,i+1).every(x=>x.t>7),d3:T.t>20&&Math.abs(pct)<2,x4:k2>=2&&T.v>=vmax*0.95,x5:T.c<sup20&&vr>1.5,b5:tPrev<0.4&&T.t>tPrev*3};
+ const mi=Math.min(30,(fl.d1?8:0)+(fl.d4?4:0)+(fl.d3?5:0)),bo=fl.b5?2:0;
+ const total=Math.max(0,Math.min(100,base+bo-mi)),veto=fl.x4||fl.x5;
+ const verdict=veto?'不能搞':total>=80?'能搞 · 重点':total>=65?'能搞 · 试仓':total>=50?'观察':'不能搞';
+ return {total:+total.toFixed(1),verdict,veto,dims,auto,fl}}
+let BT=[],BTs=[];let btc=[];
+$('#btrun').onclick=async()=>{
+ const codes=[...new Set(($('#btcodes').value.match(/\d{6}/g)||[]))].slice(0,60);if(!codes.length){$('#btmsg').textContent='请输入代码';return}
+ const len=+$('#btlen').value;const oldBT=BT,oldBTs=BTs;BT=[];BTs=[];$('#btrun').disabled=true;const fails=[];
+ for(const [j,c] of codes.entries()){$('#btmsg').textContent=`回测中 ${j+1}/${codes.length}：${c}`;
+  try{const d=await jget(kurl(secid(c),len));if(!d.data.klines||!d.data.klines.length)throw new Error('无K线');const K=d.data.klines.map(s=>s.split(','));
+   const R=K.map(a=>({d:a[0],o:+a[1],c:+a[2],h:+a[3],l:+a[4],v:+a[5],t:+a[10]}));
+   if(R.length<280)throw new Error('历史太短');let n0=0;
+   for(let i=260;i<R.length-1;i++){if(R[i].v===0)continue;const s=scoreAt(R,i);const f={};[1,3,5,10].forEach(k=>f[k]=R[i+k]?(R[i+k].c/R[i].c-1)*100:null);
+    BT.push({code:c,name:d.data.name,date:R[i].d,close:R[i].c,...s,f});n0++}
+   BTs.push({code:c,name:d.data.name,n:n0,from:R[260].d,to:R[R.length-1].d})}catch(e){fails.push(c+'（'+(e&&e.message||'失败')+'）');if(fails.length>=3&&!BTs.length){$('#btmsg').innerHTML='连续 3 只取数失败，已停止。很可能是被东方财富临时限流：请等 10–30 分钟，或换个网络（如手机热点）后再试。失败原因：'+fails.join('、');$('#btrun').disabled=false;return}}
+  await new Promise(r=>setTimeout(r,900));await new Promise(r=>setTimeout(r,0))}
+ if(!BTs.length){BT=oldBT;BTs=oldBTs}
+ $('#btrun').disabled=false;$('#btmsg').innerHTML=`完成：${BTs.length} 只股票，${BT.length} 个评价样本${fails.length?'；失败 '+fails.join('、'):''}。`;renderBT()};
+$('#bthz').onchange=renderBT;
+function renderBT(){if(!BT.length)return;const hz=$('#bthz').value,S=BT.filter(x=>x.f[hz]!=null),r=x=>x.f[hz];
+ const st=a=>a.length?{n:a.length,m:avg(a.map(r)),w:a.filter(x=>r(x)>0).length/a.length*100}:{n:0,m:null,w:null};
+ const f=v=>v==null?'—':(v>0?'+':'')+v.toFixed(2)+'%';const all=st(S);
+ const V=['能搞 · 重点','能搞 · 试仓','观察','不能搞'],vg=V.map(v=>({v,...st(S.filter(x=>x.verdict===v))}));
+ const bk=[[0,40],[40,45],[45,50],[50,55],[55,60],[60,65],[65,101]],bg=bk.map(b=>({l:b[1]>100?'≥'+b[0]:b[0]+'–'+b[1],...st(S.filter(x=>x.total>=b[0]&&x.total<b[1]))}));
+ const top=st(S.filter(x=>x.verdict.startsWith('能搞'))),no=st(S.filter(x=>x.verdict==='不能搞'));
+ $('#btkv').innerHTML=[['样本数',all.n],['全样本平均 '+hz+' 日收益',f(all.m)],['全样本胜率',all.w.toFixed(1)+'%'],['"能搞"组 平均 / 胜率',top.n?f(top.m)+' / '+top.w.toFixed(0)+'%':'无样本'],['"不能搞"组 平均 / 胜率',no.n?f(no.m)+' / '+no.w.toFixed(0)+'%':'无样本'],['超额（能搞 − 全样本）',top.n?f(top.m-all.m):'—']].map(x=>`<div>${x[0]}<b>${x[1]}</b></div>`).join('');
+ const mk=(id,o)=>{const k=btc.findIndex(c=>c&&c.renderTo&&c.renderTo.id===id);if(k>=0){btc[k].destroy();btc.splice(k,1)}btc.push(Highcharts.chart(id,o))};
+ const bar=(cats,data,title,type)=>({chart:{type:type||'column'},title:{text:title},legend:{enabled:false},xAxis:{categories:cats,labels:{style:{color:ink}}},
+  yAxis:{title:{text:null},labels:{format:'{value}%',style:{color:mute}},gridLineColor:line,plotLines:[{value:0,color:ink,width:1}]},
+  plotOptions:{series:{borderRadius:3,dataLabels:{enabled:true,format:'{y:.2f}%',style:{textOutline:'none',color:ink}}}},series:[{data}]});
+ const best=vg.filter(g=>g.n).sort((a,b)=>b.m-a.m)[0];
+ mk('bt1',{...bar(vg.map(g=>g.v+'<br>n='+g.n),vg.map((g,k)=>({y:g.m==null?null:+g.m.toFixed(2),color:k<2?red:k==2?mute:ink})),`按结论分组：${best?best.v:''} 组平均收益最高`),tooltip:{formatter(){const g=vg[this.point.index];return `${g.v}<br>样本 ${g.n}<br>平均 ${f(g.m)}<br>胜率 ${g.w==null?'—':g.w.toFixed(1)+'%'}`}}});
+ mk('bt2',{...bar(bg.map(g=>g.l+'<br>n='+g.n),bg.map(g=>({y:g.m==null?null:+g.m.toFixed(2),color:red})),'按总分分段的平均收益：看是否随分数上升'),tooltip:{formatter(){const g=bg[this.point.index];return `${g.l} 分<br>样本 ${g.n}<br>平均 ${f(g.m)}<br>胜率 ${g.w==null?'—':g.w.toFixed(1)+'%'}`}}});
+ const dd=D.map((d,k)=>{if(!S.length||!S[0].auto[k])return null;const a=st(S.filter(x=>x.dims[k]>=70)),b=st(S.filter(x=>x.dims[k]<50));return{n:d.name.replace(/（.*）/,''),d:a.m!=null&&b.m!=null?a.m-b.m:null,a,b}}).filter(Boolean);
+ mk('bt3',{...bar(dd.map(x=>x.n),dd.map(x=>({y:x.d==null?null:+x.d.toFixed(2),color:x.d>0?red:mute})),'可回测维度的区分度','bar'),tooltip:{formatter(){const x=dd[this.point.index];return `${x.n}<br>≥70 分：n=${x.a.n}，${f(x.a.m)}<br>&lt;50 分：n=${x.b.n}，${f(x.b.m)}`}}});
+ const FL=[['d1','二次放量'],['d4','连续3日换手>7%'],['d3','换手激增滞涨'],['x4','高位天量(否决)'],['x5','放量破支撑(否决)'],['b5','低换手后放量(加分)']];
+ const fg=FL.map(([k,l])=>{const y=st(S.filter(x=>x.fl[k])),n=st(S.filter(x=>!x.fl[k]));return{l,y,n}});
+ mk('bt4',{chart:{type:'bar'},title:{text:'扣分/否决规则：触发 vs 未触发'},xAxis:{categories:fg.map(g=>g.l+' (n='+g.y.n+')'),labels:{style:{color:ink}}},
+  yAxis:{title:{text:null},labels:{format:'{value}%',style:{color:mute}},gridLineColor:line,plotLines:[{value:0,color:ink,width:1}]},legend:{itemStyle:{color:ink}},
+  plotOptions:{series:{borderRadius:3}},tooltip:{shared:true,valueDecimals:2,valueSuffix:'%'},
+  series:[{name:'触发',color:red,data:fg.map(g=>g.y.m==null?null:+g.y.m.toFixed(2))},{name:'未触发',color:mute,data:fg.map(g=>g.n.m==null?null:+g.n.m.toFixed(2))}]});
+ $('#btt').innerHTML='<tr><th>股票</th><th>区间</th><th>样本</th><th>平均收益</th><th>"能搞"次数</th><th>"能搞"平均</th><th>"不能搞"平均</th></tr>'+BTs.map(s=>{const a=S.filter(x=>x.code===s.code),A=st(a),T=st(a.filter(x=>x.verdict.startsWith('能搞'))),N=st(a.filter(x=>x.verdict==='不能搞'));
+  return `<tr><td><b>${s.name}</b> <span class="tag">${s.code}</span></td><td>${s.from} → ${s.to}</td><td class="n">${A.n}</td><td class="n">${f(A.m)}</td><td class="n">${T.n}</td><td class="n">${f(T.m)}</td><td class="n">${f(N.m)}</td></tr>`}).join('')}
+$('#btcsv').onclick=()=>{if(!BT.length)return;const L=[['代码','名称','日期','收盘','总分','结论','否决','1日','3日','5日','10日',...D.map(d=>d.name)].join(',')].concat(BT.map(x=>[x.code,x.name,x.date,x.close,x.total,x.verdict,x.veto?'是':'',...[1,3,5,10].map(k=>x.f[k]==null?'':x.f[k].toFixed(2)),...x.dims.map(v=>v.toFixed(1))].join(',')));
+ const b=new Blob(['\ufeff'+L.join('\n')],{type:'text/csv'});const e=document.createElement('a');e.href=URL.createObjectURL(b);e.download='回测明细.csv';e.click()};
+
+$('#ping').onclick=async()=>{$('#fmsg').textContent='测试中…';const t0=Date.now();
+ try{const d=await jsonp(kurl('1.600150',3));$('#fmsg').innerHTML=d&&d.data&&d.data.klines?`<b>连接正常</b>（${Date.now()-t0} ms），已取到 ${d.data.name} 最近 ${d.data.klines.length} 天数据。`:`连上了但接口返回空：多半是被限流，等 15–30 分钟再试。`}
+ catch(e){$('#fmsg').innerHTML=`<b style="color:#D7263D">连接失败：${e.message}</b>（${Date.now()-t0} ms）。若是"超时"多半是被限流；若是"网络请求失败"多半是网络屏蔽了 eastmoney.com，可换手机热点再试。`}};
+calc();
+</script></body></html>
